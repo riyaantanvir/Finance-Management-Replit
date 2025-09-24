@@ -300,12 +300,31 @@ export class MemStorage implements IStorage {
       let endDate = now;
 
       switch (filters.dateRange) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+          break;
+        case 'yesterday':
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+          endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+          break;
         case 'this-month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
         case 'last-month':
           startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
           endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+          break;
+        case 'custom':
+          if (filters.startDate && filters.endDate) {
+            startDate = new Date(filters.startDate);
+            endDate = new Date(filters.endDate);
+            endDate.setHours(23, 59, 59, 999); // Include the entire end date
+          } else {
+            return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          }
           break;
         default:
           if (filters.startDate && filters.endDate) {

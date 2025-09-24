@@ -1,7 +1,9 @@
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car } from "lucide-react";
+import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter } from "lucide-react";
 import { Expense } from "@shared/schema";
+import ExpenseFilters from "@/components/expense/expense-filters";
 
 interface DashboardStats {
   totalIncome: number;
@@ -11,13 +13,87 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+  const [filters, setFilters] = useState({
+    dateRange: 'all',
+    tag: 'all',
+    paymentMethod: 'all',
+    type: 'all',
+    startDate: '',
+    endDate: '',
   });
 
-  const { data: recentExpenses, isLoading: expensesLoading } = useQuery<Expense[]>({
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Build query params based on filters
+  const queryParams = useMemo(() => {
+    const params = new URLSearchParams();
+    
+    if (filters.dateRange !== 'all') {
+      params.append('dateRange', filters.dateRange);
+    }
+    if (filters.tag !== 'all') {
+      params.append('tag', filters.tag);
+    }
+    if (filters.paymentMethod !== 'all') {
+      params.append('paymentMethod', filters.paymentMethod);
+    }
+    if (filters.type !== 'all') {
+      params.append('type', filters.type);
+    }
+    // Only include custom date range params when dateRange is 'custom'
+    if (filters.dateRange === 'custom' && filters.startDate) {
+      params.append('startDate', filters.startDate);
+    }
+    if (filters.dateRange === 'custom' && filters.endDate) {
+      params.append('endDate', filters.endDate);
+    }
+    
+    return params.toString();
+  }, [filters]);
+
+  const { data: allExpenses = [], isLoading: allExpensesLoading } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
   });
+
+  const { data: filteredExpenses = [], isLoading: expensesLoading } = useQuery<Expense[]>({
+    queryKey: ["/api/expenses/filtered", queryParams],
+    queryFn: async () => {
+      const url = queryParams ? `/api/expenses/filtered?${queryParams}` : '/api/expenses';
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch expenses');
+      return response.json();
+    },
+    enabled: true,
+  });
+
+  // Calculate stats from filtered expenses
+  const stats = useMemo(() => {
+    const expenses = filteredExpenses;
+    
+    const totalIncome = expenses
+      .filter(e => e.type === 'income')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const totalExpenses = expenses
+      .filter(e => e.type === 'expense')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+    const netBalance = totalIncome - totalExpenses;
+    
+    // This month expenses from filtered data
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthExpenses = expenses
+      .filter(e => new Date(e.date) >= startOfMonth && e.type === 'expense')
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    
+    return {
+      totalIncome,
+      totalExpenses,
+      netBalance,
+      thisMonth: thisMonthExpenses,
+    };
+  }, [filteredExpenses]);
 
   const formatCurrency = (amount: number) => `৳ ${amount.toLocaleString()}`;
 
@@ -46,7 +122,30 @@ export default function Dashboard() {
     }
   };
 
-  if (statsLoading || expensesLoading) {
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value };
+      
+      // Clear custom date range when switching away from 'custom'
+      if (key === 'dateRange' && value !== 'custom') {
+        newFilters.startDate = '';
+        newFilters.endDate = '';
+      }
+      
+      return newFilters;
+    });
+  };
+
+  const handleDateRangeChange = (startDate: string, endDate: string) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      startDate, 
+      endDate,
+      dateRange: 'custom'
+    }));
+  };
+
+  if (allExpensesLoading || expensesLoading) {
     return (
       <div className="p-6" data-testid="dashboard-loading">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -64,6 +163,42 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="dashboard-page">
+      {/* Filter Toggle and Filters */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
+            {filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all'
+              ? 'Filtered view of your financial data'
+              : 'Overview of your financial data'
+            }
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
+            {filteredExpenses.length} {filteredExpenses.length === 1 ? 'transaction' : 'transactions'}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            data-testid="button-toggle-filters"
+          >
+            <Filter className="h-4 w-4" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+        </div>
+      </div>
+
+      {/* Filters Section */}
+      {showFilters && (
+        <ExpenseFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onDateRangeChange={handleDateRangeChange}
+          expenses={allExpenses}
+        />
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card>
@@ -72,7 +207,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Total Income</p>
                 <p className="text-lg md:text-2xl font-bold text-green-600" data-testid="text-total-income">
-                  {formatCurrency(stats?.totalIncome || 0)}
+                  {formatCurrency(stats.totalIncome)}
                 </p>
               </div>
               <ArrowUp className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
@@ -86,7 +221,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Total Expenses</p>
                 <p className="text-lg md:text-2xl font-bold text-red-600" data-testid="text-total-expenses">
-                  {formatCurrency(stats?.totalExpenses || 0)}
+                  {formatCurrency(stats.totalExpenses)}
                 </p>
               </div>
               <ArrowDown className="h-5 w-5 md:h-6 md:w-6 text-red-600" />
@@ -100,7 +235,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Net Balance</p>
                 <p className="text-lg md:text-2xl font-bold text-primary" data-testid="text-net-balance">
-                  {formatCurrency(stats?.netBalance || 0)}
+                  {formatCurrency(stats.netBalance)}
                 </p>
               </div>
               <Wallet className="h-5 w-5 md:h-6 md:w-6 text-primary" />
@@ -114,7 +249,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">This Month</p>
                 <p className="text-lg md:text-2xl font-bold text-muted-foreground" data-testid="text-this-month">
-                  {formatCurrency(stats?.thisMonth || 0)}
+                  {formatCurrency(stats.thisMonth)}
                 </p>
               </div>
               <Calendar className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
@@ -123,19 +258,34 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Transactions */}
+      {/* Filtered Transactions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>
+              {filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all' 
+                ? 'Filtered Transactions' 
+                : 'Recent Transactions'
+              }
+            </span>
+            {(filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all') && (
+              <span className="text-sm font-normal text-muted-foreground">
+                {filteredExpenses.length} {filteredExpenses.length === 1 ? 'result' : 'results'}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {!recentExpenses || recentExpenses.length === 0 ? (
+          {!filteredExpenses || filteredExpenses.length === 0 ? (
             <p className="text-center text-muted-foreground py-8" data-testid="text-no-transactions">
-              No transactions found
+              {(filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all')
+                ? 'No transactions match your filters'
+                : 'No transactions found'
+              }
             </p>
           ) : (
             <div className="space-y-3">
-              {recentExpenses.slice(0, 5).map((expense) => (
+              {filteredExpenses.slice(0, 10).map((expense) => (
                 <div
                   key={expense.id}
                   className="flex items-center justify-between py-3 border-b border-border last:border-b-0"

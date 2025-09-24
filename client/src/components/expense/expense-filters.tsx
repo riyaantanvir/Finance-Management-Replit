@@ -1,7 +1,13 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Expense } from "@shared/schema";
+import { Calendar, CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 interface ExpenseFiltersProps {
   filters: {
@@ -9,15 +15,27 @@ interface ExpenseFiltersProps {
     tag: string;
     paymentMethod: string;
     type: string;
+    startDate?: string;
+    endDate?: string;
   };
   onFilterChange: (key: string, value: string) => void;
+  onDateRangeChange?: (startDate: string, endDate: string) => void;
   expenses: Expense[];
 }
 
-export default function ExpenseFilters({ filters, onFilterChange, expenses = [] }: ExpenseFiltersProps) {
+export default function ExpenseFilters({ filters, onFilterChange, onDateRangeChange, expenses = [] }: ExpenseFiltersProps) {
+  const [startDate, setStartDate] = useState(filters.startDate || '');
+  const [endDate, setEndDate] = useState(filters.endDate || '');
+
   // Get unique tags and payment methods from expenses data
   const uniqueTags = Array.from(new Set(expenses.map(expense => expense.tag))).sort();
   const uniquePaymentMethods = Array.from(new Set(expenses.map(expense => expense.paymentMethod))).sort();
+
+  const handleCustomDateApply = () => {
+    if (startDate && endDate && onDateRangeChange) {
+      onDateRangeChange(startDate, endDate);
+    }
+  };
   return (
     <Card className="mb-4 md:mb-6">
       <CardHeader className="pb-4">
@@ -36,8 +54,11 @@ export default function ExpenseFilters({ filters, onFilterChange, expenses = [] 
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
                 <SelectItem value="this-month">This Month</SelectItem>
                 <SelectItem value="last-month">Last Month</SelectItem>
+                <SelectItem value="custom">Custom Date Range</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -99,6 +120,45 @@ export default function ExpenseFilters({ filters, onFilterChange, expenses = [] 
             </Select>
           </div>
         </div>
+
+        {/* Custom Date Range Section */}
+        {filters.dateRange === 'custom' && (
+          <div className="mt-6 pt-6 border-t border-border">
+            <h4 className="text-sm font-medium mb-4">Custom Date Range</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+              <div>
+                <Label className="text-sm font-medium">Start Date</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">End Date</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="mt-1"
+                  data-testid="input-end-date"
+                />
+              </div>
+              <div>
+                <Button 
+                  onClick={handleCustomDateApply}
+                  disabled={!startDate || !endDate}
+                  className="w-full"
+                  data-testid="button-apply-custom-date"
+                >
+                  Apply Range
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

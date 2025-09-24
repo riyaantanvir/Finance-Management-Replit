@@ -109,6 +109,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Expense routes
   app.get("/api/expenses", async (req, res) => {
     try {
+      const expenses = await storage.getAllExpenses();
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch expenses" });
+    }
+  });
+
+  app.get("/api/expenses/filtered", async (req, res) => {
+    try {
       const { dateRange, tag, paymentMethod, type, startDate, endDate } = req.query;
       
       const filters = {
@@ -123,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expenses = await storage.getFilteredExpenses(filters);
       res.json(expenses);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch expenses" });
+      res.status(500).json({ message: "Failed to fetch filtered expenses" });
     }
   });
 
