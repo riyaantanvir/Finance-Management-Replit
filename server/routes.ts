@@ -132,6 +132,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/expenses/bulk", async (req, res) => {
+    try {
+      const { expenses } = req.body;
+      
+      if (!Array.isArray(expenses) || expenses.length === 0) {
+        return res.status(400).json({ message: "Expenses array is required and must not be empty" });
+      }
+
+      // Validate each expense
+      const validatedExpenses = expenses.map((expense, index) => {
+        try {
+          return insertExpenseSchema.parse(expense);
+        } catch (error) {
+          throw new Error(`Invalid expense at index ${index}: ${error instanceof z.ZodError ? error.errors.map(e => e.message).join(', ') : 'Unknown error'}`);
+        }
+      });
+
+      const createdExpenses = await storage.createBulkExpenses(validatedExpenses);
+      res.status(201).json({ 
+        message: `Successfully imported ${createdExpenses.length} expenses`,
+        expenses: createdExpenses 
+      });
+    } catch (error) {
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Failed to import expenses" 
+      });
+    }
+  });
+
   app.put("/api/expenses/:id", async (req, res) => {
     try {
       const { id } = req.params;

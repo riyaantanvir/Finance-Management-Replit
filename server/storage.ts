@@ -13,6 +13,7 @@ export interface IStorage {
   // Expense methods
   getExpense(id: string): Promise<Expense | undefined>;
   createExpense(expense: InsertExpense): Promise<Expense>;
+  createBulkExpenses(expenses: InsertExpense[]): Promise<Expense[]>;
   updateExpense(id: string, expense: UpdateExpense): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
   getAllExpenses(): Promise<Expense[]>;
@@ -106,6 +107,25 @@ export class MemStorage implements IStorage {
     };
     this.expenses.set(id, expense);
     return expense;
+  }
+
+  async createBulkExpenses(insertExpenses: InsertExpense[]): Promise<Expense[]> {
+    const now = new Date();
+    const expenses: Expense[] = [];
+    
+    for (const insertExpense of insertExpenses) {
+      const id = randomUUID();
+      const expense: Expense = {
+        ...insertExpense,
+        id,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.expenses.set(id, expense);
+      expenses.push(expense);
+    }
+    
+    return expenses;
   }
 
   async updateExpense(id: string, updateExpense: UpdateExpense): Promise<Expense | undefined> {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Expense } from "@shared/schema";
 import ExpenseForm from "@/components/expense/expense-form";
+import CSVImport from "@/components/expense/csv-import";
 import ExpenseFilters from "@/components/expense/expense-filters";
 import ExpenseTable from "@/components/expense/expense-table";
 
@@ -44,6 +45,7 @@ export default function ExpenseEntry() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="expense-entry-page">
       <ExpenseForm />
+      <CSVImport />
       <ExpenseFilters filters={filters} onFilterChange={handleFilterChange} />
       <ExpenseTable expenses={expenses} isLoading={isLoading} />
     </div>
