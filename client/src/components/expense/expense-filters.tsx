@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Expense } from "@shared/schema";
 
 interface ExpenseFiltersProps {
   filters: {
@@ -10,9 +11,13 @@ interface ExpenseFiltersProps {
     type: string;
   };
   onFilterChange: (key: string, value: string) => void;
+  expenses: Expense[];
 }
 
-export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFiltersProps) {
+export default function ExpenseFilters({ filters, onFilterChange, expenses = [] }: ExpenseFiltersProps) {
+  // Get unique tags and payment methods from expenses data
+  const uniqueTags = Array.from(new Set(expenses.map(expense => expense.tag))).sort();
+  const uniquePaymentMethods = Array.from(new Set(expenses.map(expense => expense.paymentMethod))).sort();
   return (
     <Card className="mb-4 md:mb-6">
       <CardHeader className="pb-4">
@@ -48,13 +53,11 @@ export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFilte
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Tags</SelectItem>
-                <SelectItem value="home">Home</SelectItem>
-                <SelectItem value="family">Family</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="transport">Transport</SelectItem>
-                <SelectItem value="food">Food</SelectItem>
-                <SelectItem value="entertainment">Entertainment</SelectItem>
-                <SelectItem value="healthcare">Healthcare</SelectItem>
+                {uniqueTags.map(tag => (
+                  <SelectItem key={tag} value={tag}>
+                    {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -70,11 +73,11 @@ export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFilte
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="bkash">Bkash</SelectItem>
-                <SelectItem value="binance">Binance</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="bank">Bank Transfer</SelectItem>
+                {uniquePaymentMethods.map(method => (
+                  <SelectItem key={method} value={method}>
+                    {method.charAt(0).toUpperCase() + method.slice(1).replace(/([A-Z])/g, ' $1')}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

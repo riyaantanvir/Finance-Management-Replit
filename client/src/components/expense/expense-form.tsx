@@ -127,44 +127,32 @@ export default function ExpenseForm() {
             
             <div>
               <Label htmlFor="tag" className="text-sm font-medium">Tag</Label>
-              <Select
+              <Input
+                id="tag"
+                type="text"
+                placeholder="e.g., dining, travel, bills, shopping"
                 value={formData.tag}
-                onValueChange={(value) => handleInputChange('tag', value)}
+                onChange={(e) => handleInputChange('tag', e.target.value)}
                 required
-              >
-                <SelectTrigger className="mt-1 h-11" data-testid="select-tag">
-                  <SelectValue placeholder="Select Tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="home">Home</SelectItem>
-                  <SelectItem value="family">Family</SelectItem>
-                  <SelectItem value="business">Business</SelectItem>
-                  <SelectItem value="transport">Transport</SelectItem>
-                  <SelectItem value="food">Food</SelectItem>
-                  <SelectItem value="entertainment">Entertainment</SelectItem>
-                  <SelectItem value="healthcare">Healthcare</SelectItem>
-                </SelectContent>
-              </Select>
+                className="mt-1 h-11"
+                data-testid="input-tag"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Enter any tag (auto-created)</p>
             </div>
             
             <div>
               <Label htmlFor="paymentMethod" className="text-sm font-medium">Payment Method</Label>
-              <Select
+              <Input
+                id="paymentMethod"
+                type="text"
+                placeholder="e.g., cash, card, bkash, bank transfer"
                 value={formData.paymentMethod}
-                onValueChange={(value) => handleInputChange('paymentMethod', value)}
+                onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                 required
-              >
-                <SelectTrigger className="mt-1 h-11" data-testid="select-payment-method">
-                  <SelectValue placeholder="Select Method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="bkash">Bkash</SelectItem>
-                  <SelectItem value="binance">Binance</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank">Bank Transfer</SelectItem>
-                </SelectContent>
-              </Select>
+                className="mt-1 h-11"
+                data-testid="input-payment-method"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Enter any payment method (auto-created)</p>
             </div>
           </div>
           

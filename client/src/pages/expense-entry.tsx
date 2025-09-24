@@ -46,7 +46,7 @@ export default function ExpenseEntry() {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="expense-entry-page">
       <ExpenseForm />
       <CSVImport />
-      <ExpenseFilters filters={filters} onFilterChange={handleFilterChange} />
+      <ExpenseFilters filters={filters} onFilterChange={handleFilterChange} expenses={expenses} />
       <ExpenseTable expenses={expenses} isLoading={isLoading} />
     </div>
   );

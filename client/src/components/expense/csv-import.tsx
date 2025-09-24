@@ -121,15 +121,15 @@ export default function CSVImport() {
         continue;
       }
 
-      const validTags = ['home', 'family', 'business', 'transport', 'food', 'entertainment', 'healthcare'];
-      if (!validTags.includes(expense.tag)) {
-        errors.push(`Row ${i + 1}: Tag must be one of: ${validTags.join(', ')}`);
+      // Validate tag (allow any non-empty tag)
+      if (!expense.tag || expense.tag.trim() === '') {
+        errors.push(`Row ${i + 1}: Tag is required`);
         continue;
       }
 
-      const validPaymentMethods = ['cash', 'bkash', 'binance', 'card', 'bank', 'banktransfer'];
-      if (!validPaymentMethods.includes(expense.paymentMethod)) {
-        errors.push(`Row ${i + 1}: Payment Method must be one of: cash, bkash, binance, card, bank transfer`);
+      // Validate payment method (allow any non-empty payment method)
+      if (!expense.paymentMethod || expense.paymentMethod.trim() === '') {
+        errors.push(`Row ${i + 1}: Payment Method is required`);
         continue;
       }
 
@@ -172,7 +172,7 @@ export default function CSVImport() {
 
   const downloadTemplate = () => {
     const headers = "Date,Type,Details,Amount (BDT),Tag,Payment Method\n";
-    const sample = "2024-01-15,expense,Lunch at restaurant,1200,food,cash\n2024-01-15,income,Freelance payment,50000,business,bank";
+    const sample = "2024-01-15,expense,Lunch at restaurant,1200,dining,cash\n2024-01-15,income,Freelance payment,50000,business,bank transfer\n2024-01-16,expense,Uber ride,350,transport,bkash";
     const csvContent = headers + sample;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
