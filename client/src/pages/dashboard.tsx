@@ -63,61 +63,61 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6" data-testid="dashboard-page">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="dashboard-page">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Income</p>
-                <p className="text-2xl font-bold text-green-600" data-testid="text-total-income">
+                <p className="text-xs md:text-sm text-muted-foreground">Total Income</p>
+                <p className="text-lg md:text-2xl font-bold text-green-600" data-testid="text-total-income">
                   {formatCurrency(stats?.totalIncome || 0)}
                 </p>
               </div>
-              <ArrowUp className="h-6 w-6 text-green-600" />
+              <ArrowUp className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600" data-testid="text-total-expenses">
+                <p className="text-xs md:text-sm text-muted-foreground">Total Expenses</p>
+                <p className="text-lg md:text-2xl font-bold text-red-600" data-testid="text-total-expenses">
                   {formatCurrency(stats?.totalExpenses || 0)}
                 </p>
               </div>
-              <ArrowDown className="h-6 w-6 text-red-600" />
+              <ArrowDown className="h-5 w-5 md:h-6 md:w-6 text-red-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Net Balance</p>
-                <p className="text-2xl font-bold text-primary" data-testid="text-net-balance">
+                <p className="text-xs md:text-sm text-muted-foreground">Net Balance</p>
+                <p className="text-lg md:text-2xl font-bold text-primary" data-testid="text-net-balance">
                   {formatCurrency(stats?.netBalance || 0)}
                 </p>
               </div>
-              <Wallet className="h-6 w-6 text-primary" />
+              <Wallet className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">This Month</p>
-                <p className="text-2xl font-bold text-muted-foreground" data-testid="text-this-month">
+                <p className="text-xs md:text-sm text-muted-foreground">This Month</p>
+                <p className="text-lg md:text-2xl font-bold text-muted-foreground" data-testid="text-this-month">
                   {formatCurrency(stats?.thisMonth || 0)}
                 </p>
               </div>
-              <Calendar className="h-6 w-6 text-muted-foreground" />
+              <Calendar className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>

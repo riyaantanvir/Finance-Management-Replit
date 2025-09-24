@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { clearAuthState } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,7 +11,13 @@ const pageTitles: Record<string, string> = {
   "/admin-panel": "Admin Panel",
 };
 
-export default function Header() {
+interface HeaderProps {
+  sidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+  isMobile: boolean;
+}
+
+export default function Header({ sidebarOpen, setSidebarOpen, isMobile }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -28,13 +34,37 @@ export default function Header() {
   const title = pageTitles[location] || "Dashboard";
 
   return (
-    <header className="bg-white border-b border-border p-4" data-testid="header">
+    <header className="bg-white border-b border-border p-4 sticky top-0 z-30" data-testid="header">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-foreground" data-testid="text-page-title">
-          {title}
-        </h1>
         <div className="flex items-center space-x-4">
-          <span className="text-sm text-muted-foreground" data-testid="text-welcome">
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-mobile-menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-sidebar-toggle"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          <h1 className="text-xl md:text-2xl font-semibold text-foreground truncate" data-testid="text-page-title">
+            {title}
+          </h1>
+        </div>
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <span className="hidden sm:block text-sm text-muted-foreground" data-testid="text-welcome">
             Welcome, Admin
           </span>
           <Button

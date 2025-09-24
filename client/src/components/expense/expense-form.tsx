@@ -59,33 +59,34 @@ export default function ExpenseForm() {
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Add New Entry</CardTitle>
+    <Card className="mb-4 md:mb-6">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg md:text-xl">Add New Entry</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4" data-testid="form-expense">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6" data-testid="form-expense">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <div>
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date" className="text-sm font-medium">Date</Label>
               <Input
                 id="date"
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleInputChange('date', e.target.value)}
                 required
+                className="mt-1 h-11"
                 data-testid="input-date"
               />
             </div>
             
             <div>
-              <Label htmlFor="type">Type</Label>
+              <Label htmlFor="type" className="text-sm font-medium">Type</Label>
               <Select
                 value={formData.type}
                 onValueChange={(value) => handleInputChange('type', value)}
                 required
               >
-                <SelectTrigger data-testid="select-type">
+                <SelectTrigger className="mt-1 h-11" data-testid="select-type">
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -96,7 +97,7 @@ export default function ExpenseForm() {
             </div>
             
             <div>
-              <Label htmlFor="amount">Amount (BDT)</Label>
+              <Label htmlFor="amount" className="text-sm font-medium">Amount (BDT)</Label>
               <Input
                 id="amount"
                 type="number"
@@ -105,12 +106,13 @@ export default function ExpenseForm() {
                 value={formData.amount}
                 onChange={(e) => handleInputChange('amount', e.target.value)}
                 required
+                className="mt-1 h-11"
                 data-testid="input-amount"
               />
             </div>
             
-            <div className="md:col-span-2">
-              <Label htmlFor="details">Details</Label>
+            <div className="sm:col-span-2">
+              <Label htmlFor="details" className="text-sm font-medium">Details</Label>
               <Input
                 id="details"
                 type="text"
@@ -118,18 +120,19 @@ export default function ExpenseForm() {
                 value={formData.details}
                 onChange={(e) => handleInputChange('details', e.target.value)}
                 required
+                className="mt-1 h-11"
                 data-testid="input-details"
               />
             </div>
             
             <div>
-              <Label htmlFor="tag">Tag</Label>
+              <Label htmlFor="tag" className="text-sm font-medium">Tag</Label>
               <Select
                 value={formData.tag}
                 onValueChange={(value) => handleInputChange('tag', value)}
                 required
               >
-                <SelectTrigger data-testid="select-tag">
+                <SelectTrigger className="mt-1 h-11" data-testid="select-tag">
                   <SelectValue placeholder="Select Tag" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,13 +148,13 @@ export default function ExpenseForm() {
             </div>
             
             <div>
-              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Label htmlFor="paymentMethod" className="text-sm font-medium">Payment Method</Label>
               <Select
                 value={formData.paymentMethod}
                 onValueChange={(value) => handleInputChange('paymentMethod', value)}
                 required
               >
-                <SelectTrigger data-testid="select-payment-method">
+                <SelectTrigger className="mt-1 h-11" data-testid="select-payment-method">
                   <SelectValue placeholder="Select Method" />
                 </SelectTrigger>
                 <SelectContent>
@@ -165,10 +168,10 @@ export default function ExpenseForm() {
             </div>
           </div>
           
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <Button
               type="submit"
-              className="bg-black hover:bg-gray-800 text-white"
+              className="bg-black hover:bg-gray-800 text-white w-full sm:w-auto h-11 text-sm md:text-base min-h-[44px]"
               disabled={createExpenseMutation.isPending}
               data-testid="button-save-entry"
             >

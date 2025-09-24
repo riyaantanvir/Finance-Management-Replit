@@ -14,19 +14,19 @@ interface ExpenseFiltersProps {
 
 export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFiltersProps) {
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Filters</CardTitle>
+    <Card className="mb-4 md:mb-6">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg md:text-xl">Filters</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <div>
-            <Label>Date Range</Label>
+            <Label className="text-sm font-medium">Date Range</Label>
             <Select
               value={filters.dateRange}
               onValueChange={(value) => onFilterChange('dateRange', value)}
             >
-              <SelectTrigger data-testid="select-filter-date-range">
+              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-date-range">
                 <SelectValue placeholder="Select Date Range" />
               </SelectTrigger>
               <SelectContent>
@@ -38,12 +38,12 @@ export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFilte
           </div>
           
           <div>
-            <Label>Tag</Label>
+            <Label className="text-sm font-medium">Tag</Label>
             <Select
               value={filters.tag}
               onValueChange={(value) => onFilterChange('tag', value)}
             >
-              <SelectTrigger data-testid="select-filter-tag">
+              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-tag">
                 <SelectValue placeholder="All Tags" />
               </SelectTrigger>
               <SelectContent>
@@ -60,12 +60,12 @@ export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFilte
           </div>
           
           <div>
-            <Label>Payment Method</Label>
+            <Label className="text-sm font-medium">Payment Method</Label>
             <Select
               value={filters.paymentMethod}
               onValueChange={(value) => onFilterChange('paymentMethod', value)}
             >
-              <SelectTrigger data-testid="select-filter-payment-method">
+              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-payment-method">
                 <SelectValue placeholder="All Methods" />
               </SelectTrigger>
               <SelectContent>
@@ -80,12 +80,12 @@ export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFilte
           </div>
           
           <div>
-            <Label>Type</Label>
+            <Label className="text-sm font-medium">Type</Label>
             <Select
               value={filters.type}
               onValueChange={(value) => onFilterChange('type', value)}
             >
-              <SelectTrigger data-testid="select-filter-type">
+              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-type">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
