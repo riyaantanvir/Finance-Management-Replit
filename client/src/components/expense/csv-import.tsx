@@ -51,6 +51,29 @@ export default function CSVImport() {
     },
   });
 
+  // Proper CSV parsing function that handles quoted values
+  const parseCSVLine = (line: string): string[] => {
+    const cells: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        cells.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    cells.push(current.trim());
+    return cells;
+  };
+
   const parseCSV = (text: string): { data: CSVExpense[]; errors: string[] } => {
     const lines = text.trim().split('\n');
     const errors: string[] = [];
@@ -63,7 +86,7 @@ export default function CSVImport() {
 
     // Expected headers
     const expectedHeaders = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Tag', 'Payment Method'];
-    const headers = lines[0].split(',').map(h => h.trim());
+    const headers = parseCSVLine(lines[0]);
 
     // Validate headers
     const headerMapping: { [key: string]: number } = {};
@@ -84,7 +107,7 @@ export default function CSVImport() {
 
     // Parse data rows
     for (let i = 1; i < lines.length; i++) {
-      const cells = lines[i].split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
+      const cells = parseCSVLine(lines[i]);
       
       if (cells.length < expectedHeaders.length) {
         errors.push(`Row ${i + 1}: Insufficient columns`);
