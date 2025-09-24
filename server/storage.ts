@@ -1,4 +1,17 @@
-import { type User, type InsertUser, type Expense, type InsertExpense, type UpdateExpense, type UpdateUser } from "@shared/schema";
+import { 
+  type User, 
+  type InsertUser, 
+  type UpdateUser,
+  type Expense, 
+  type InsertExpense, 
+  type UpdateExpense,
+  type Tag,
+  type InsertTag,
+  type UpdateTag,
+  type PaymentMethod,
+  type InsertPaymentMethod,
+  type UpdatePaymentMethod
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -9,6 +22,20 @@ export interface IStorage {
   updateUser(id: string, user: UpdateUser): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   getAllUsers(): Promise<User[]>;
+  
+  // Tag methods
+  getTag(id: string): Promise<Tag | undefined>;
+  createTag(tag: InsertTag): Promise<Tag>;
+  updateTag(id: string, tag: UpdateTag): Promise<Tag | undefined>;
+  deleteTag(id: string): Promise<boolean>;
+  getAllTags(): Promise<Tag[]>;
+  
+  // Payment Method methods
+  getPaymentMethod(id: string): Promise<PaymentMethod | undefined>;
+  createPaymentMethod(paymentMethod: InsertPaymentMethod): Promise<PaymentMethod>;
+  updatePaymentMethod(id: string, paymentMethod: UpdatePaymentMethod): Promise<PaymentMethod | undefined>;
+  deletePaymentMethod(id: string): Promise<boolean>;
+  getAllPaymentMethods(): Promise<PaymentMethod[]>;
   
   // Expense methods
   getExpense(id: string): Promise<Expense | undefined>;
@@ -29,10 +56,14 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private tags: Map<string, Tag>;
+  private paymentMethods: Map<string, PaymentMethod>;
   private expenses: Map<string, Expense>;
 
   constructor() {
     this.users = new Map();
+    this.tags = new Map();
+    this.paymentMethods = new Map();
     this.expenses = new Map();
     
     // Create default admin user
@@ -89,6 +120,90 @@ export class MemStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+
+  // Tag methods
+  async getTag(id: string): Promise<Tag | undefined> {
+    return this.tags.get(id);
+  }
+
+  async createTag(insertTag: InsertTag): Promise<Tag> {
+    const id = randomUUID();
+    const now = new Date();
+    const tag: Tag = { 
+      ...insertTag, 
+      id,
+      description: insertTag.description ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.tags.set(id, tag);
+    return tag;
+  }
+
+  async updateTag(id: string, updateTag: UpdateTag): Promise<Tag | undefined> {
+    const existingTag = this.tags.get(id);
+    if (!existingTag) {
+      return undefined;
+    }
+    
+    const updatedTag: Tag = { 
+      ...existingTag, 
+      ...updateTag,
+      updatedAt: new Date(),
+    };
+    this.tags.set(id, updatedTag);
+    return updatedTag;
+  }
+
+  async deleteTag(id: string): Promise<boolean> {
+    return this.tags.delete(id);
+  }
+
+  async getAllTags(): Promise<Tag[]> {
+    return Array.from(this.tags.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  // Payment Method methods
+  async getPaymentMethod(id: string): Promise<PaymentMethod | undefined> {
+    return this.paymentMethods.get(id);
+  }
+
+  async createPaymentMethod(insertPaymentMethod: InsertPaymentMethod): Promise<PaymentMethod> {
+    const id = randomUUID();
+    const now = new Date();
+    const paymentMethod: PaymentMethod = { 
+      ...insertPaymentMethod, 
+      id,
+      description: insertPaymentMethod.description ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.paymentMethods.set(id, paymentMethod);
+    return paymentMethod;
+  }
+
+  async updatePaymentMethod(id: string, updatePaymentMethod: UpdatePaymentMethod): Promise<PaymentMethod | undefined> {
+    const existingPaymentMethod = this.paymentMethods.get(id);
+    if (!existingPaymentMethod) {
+      return undefined;
+    }
+    
+    const updatedPaymentMethod: PaymentMethod = { 
+      ...existingPaymentMethod, 
+      ...updatePaymentMethod,
+      updatedAt: new Date(),
+    };
+    this.paymentMethods.set(id, updatedPaymentMethod);
+    return updatedPaymentMethod;
+  }
+
+  async deletePaymentMethod(id: string): Promise<boolean> {
+    return this.paymentMethods.delete(id);
+  }
+
+  async getAllPaymentMethods(): Promise<PaymentMethod[]> {
+    return Array.from(this.paymentMethods.values()).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   // Expense methods

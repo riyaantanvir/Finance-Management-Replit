@@ -1,7 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertExpenseSchema, updateExpenseSchema, updateUserSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertExpenseSchema, 
+  updateExpenseSchema, 
+  updateUserSchema,
+  insertTagSchema,
+  updateTagSchema,
+  insertPaymentMethodSchema,
+  updatePaymentMethodSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -226,6 +235,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Tag management routes
+  app.get("/api/tags", async (req, res) => {
+    try {
+      const tags = await storage.getAllTags();
+      res.json(tags);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch tags" });
+    }
+  });
+
+  app.post("/api/tags", async (req, res) => {
+    try {
+      const tagData = insertTagSchema.parse(req.body);
+      const tag = await storage.createTag(tagData);
+      res.status(201).json(tag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create tag" });
+      }
+    }
+  });
+
+  app.put("/api/tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const tagData = updateTagSchema.parse(req.body);
+      
+      const tag = await storage.updateTag(id, tagData);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+
+      res.json(tag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update tag" });
+      }
+    }
+  });
+
+  app.delete("/api/tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteTag(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+
+      res.json({ message: "Tag deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete tag" });
+    }
+  });
+
+  // Payment method management routes
+  app.get("/api/payment-methods", async (req, res) => {
+    try {
+      const paymentMethods = await storage.getAllPaymentMethods();
+      res.json(paymentMethods);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  app.post("/api/payment-methods", async (req, res) => {
+    try {
+      const paymentMethodData = insertPaymentMethodSchema.parse(req.body);
+      const paymentMethod = await storage.createPaymentMethod(paymentMethodData);
+      res.status(201).json(paymentMethod);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create payment method" });
+      }
+    }
+  });
+
+  app.put("/api/payment-methods/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const paymentMethodData = updatePaymentMethodSchema.parse(req.body);
+      
+      const paymentMethod = await storage.updatePaymentMethod(id, paymentMethodData);
+      if (!paymentMethod) {
+        return res.status(404).json({ message: "Payment method not found" });
+      }
+
+      res.json(paymentMethod);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update payment method" });
+      }
+    }
+  });
+
+  app.delete("/api/payment-methods/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deletePaymentMethod(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Payment method not found" });
+      }
+
+      res.json({ message: "Payment method deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete payment method" });
     }
   });
 
