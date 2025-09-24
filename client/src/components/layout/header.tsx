@@ -12,11 +12,12 @@ const pageTitles: Record<string, string> = {
 };
 
 export default function Header() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
 
   const handleLogout = () => {
     clearAuthState();
+    setLocation("/");
     window.location.reload();
     toast({
       title: "Logged out",
