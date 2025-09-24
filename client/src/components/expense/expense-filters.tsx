@@ -1,0 +1,102 @@
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface ExpenseFiltersProps {
+  filters: {
+    dateRange: string;
+    tag: string;
+    paymentMethod: string;
+    type: string;
+  };
+  onFilterChange: (key: string, value: string) => void;
+}
+
+export default function ExpenseFilters({ filters, onFilterChange }: ExpenseFiltersProps) {
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle>Filters</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <Label>Date Range</Label>
+            <Select
+              value={filters.dateRange}
+              onValueChange={(value) => onFilterChange('dateRange', value)}
+            >
+              <SelectTrigger data-testid="select-filter-date-range">
+                <SelectValue placeholder="Select Date Range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="this-month">This Month</SelectItem>
+                <SelectItem value="last-month">Last Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label>Tag</Label>
+            <Select
+              value={filters.tag}
+              onValueChange={(value) => onFilterChange('tag', value)}
+            >
+              <SelectTrigger data-testid="select-filter-tag">
+                <SelectValue placeholder="All Tags" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                <SelectItem value="home">Home</SelectItem>
+                <SelectItem value="family">Family</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
+                <SelectItem value="transport">Transport</SelectItem>
+                <SelectItem value="food">Food</SelectItem>
+                <SelectItem value="entertainment">Entertainment</SelectItem>
+                <SelectItem value="healthcare">Healthcare</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label>Payment Method</Label>
+            <Select
+              value={filters.paymentMethod}
+              onValueChange={(value) => onFilterChange('paymentMethod', value)}
+            >
+              <SelectTrigger data-testid="select-filter-payment-method">
+                <SelectValue placeholder="All Methods" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Methods</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="bkash">Bkash</SelectItem>
+                <SelectItem value="binance">Binance</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="bank">Bank Transfer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label>Type</Label>
+            <Select
+              value={filters.type}
+              onValueChange={(value) => onFilterChange('type', value)}
+            >
+              <SelectTrigger data-testid="select-filter-type">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="income">Income</SelectItem>
+                <SelectItem value="expense">Expense</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

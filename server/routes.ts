@@ -1,0 +1,205 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertUserSchema, insertExpenseSchema, updateExpenseSchema, updateUserSchema } from "@shared/schema";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  username: z.string(),
+  password: z.string(),
+});
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = loginSchema.parse(req.body);
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid request data" });
+    }
+  });
+
+  // User routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(409).json({ message: "Username already exists" });
+      }
+
+      const user = await storage.createUser(userData);
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create user" });
+      }
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userData = updateUserSchema.parse(req.body);
+      
+      const user = await storage.updateUser(id, userData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update user" });
+      }
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteUser(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Expense routes
+  app.get("/api/expenses", async (req, res) => {
+    try {
+      const { dateRange, tag, paymentMethod, type, startDate, endDate } = req.query;
+      
+      const filters = {
+        dateRange: dateRange as string,
+        tag: tag as string,
+        paymentMethod: paymentMethod as string,
+        type: type as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      };
+
+      const expenses = await storage.getFilteredExpenses(filters);
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch expenses" });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    try {
+      const expenseData = insertExpenseSchema.parse(req.body);
+      const expense = await storage.createExpense(expenseData);
+      res.status(201).json(expense);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create expense" });
+      }
+    }
+  });
+
+  app.put("/api/expenses/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const expenseData = updateExpenseSchema.parse(req.body);
+      
+      const expense = await storage.updateExpense(id, expenseData);
+      if (!expense) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+
+      res.json(expense);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update expense" });
+      }
+    }
+  });
+
+  app.delete("/api/expenses/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteExpense(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Expense not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete expense" });
+    }
+  });
+
+  // Dashboard statistics
+  app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+      const expenses = await storage.getAllExpenses();
+      
+      const totalIncome = expenses
+        .filter(e => e.type === 'income')
+        .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+        
+      const totalExpenses = expenses
+        .filter(e => e.type === 'expense')
+        .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+        
+      const netBalance = totalIncome - totalExpenses;
+      
+      // This month expenses
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthExpenses = expenses
+        .filter(e => new Date(e.date) >= startOfMonth && e.type === 'expense')
+        .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+      res.json({
+        totalIncome,
+        totalExpenses,
+        netBalance,
+        thisMonth: thisMonthExpenses,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
