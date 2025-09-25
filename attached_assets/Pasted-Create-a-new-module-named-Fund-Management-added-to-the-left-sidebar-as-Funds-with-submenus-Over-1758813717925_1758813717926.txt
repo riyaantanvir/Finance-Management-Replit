@@ -1,0 +1,120 @@
+Create a new module named "Fund Management" added to the left sidebar as "Funds"
+with submenus: Overview, Accounts, Transfers, Reconcile, Settings.
+
+DATA MODELS
+1) accounts:
+   - id (uuid), name (string, required, unique per user)
+   - type: enum[cash, mobile_wallet, bank_account, card, crypto, other]
+   - currency: ISO code (default "BDT")
+   - opening_balance: decimal(18,2) default 0
+   - current_balance: decimal(18,2) (computed/denormalized for speed)
+   - payment_method_key: string nullable  // links to existing Payment Method list
+   - color: string nullable
+   - status: enum[active, archived] default active
+   - created_by, created_at, updated_at
+
+2) ledger:
+   - id (uuid), account_id (fk accounts.id)
+   - tx_type: enum[opening_balance, deposit, withdrawal, expense, income, transfer_in, transfer_out, adjustment]
+   - amount: decimal(18,2)           // signed +/-
+   - currency: ISO
+   - fx_rate: decimal(18,6) default 1 // to base currency
+   - amount_base: decimal(18,2)       // amount * fx_rate
+   - ref_type: string nullable        // "expense", "income", "transfer", etc.
+   - ref_id: string nullable
+   - note: text nullable
+   - created_by, created_at
+
+3) transfers:
+   - id (uuid), from_account_id, to_account_id
+   - amount, currency, fx_rate, fee decimal(18,2) default 0
+   - note, created_by, created_at
+
+4) settings_finance:
+   - base_currency (default "BDT")
+
+INTEGRATIONS
+- Map existing Payment Method options (cash, bank, bkash, nagad, rocket, card, crypto, n/a)
+  to accounts via `accounts.payment_method_key`. Ensure only one active account per key.
+- On Expense/Income Entry:
+  * If Type = Expense and Payment Method selected → create ledger row for that linked account:
+      tx_type=expense, amount = -ABS(value), currency=selected currency, fx_rate per Settings.
+  * If Type = Income → tx_type=income, amount = +ABS(value).
+  * On edit/delete, reverse previous ledger and apply new one (idempotent, use ref_type/ref_id).
+
+TRANSFERS
+- New page "Transfers":
+  * Form: From Account, To Account, Amount, Currency, FX Rate (auto=1, editable), Fee (optional), Note.
+  * On submit: create two ledger rows:
+      from_account: tx_type=transfer_out, amount=-amount
+      to_account:   tx_type=transfer_in,  amount=+amount*fx_rate if cross-currency
+      if Fee > 0 → extra ledger on from_account tx_type=expense amount=-fee note="transfer fee"
+  * Block same account transfers.
+
+BALANCE COMPUTATION
+- When any ledger row changes, recompute `accounts.current_balance`:
+    current_balance = opening_balance + SUM(all ledger.amount where account_id=?)
+- Show base totals using amount_base with settings_finance.base_currency.
+
+UI/UX
+- Sidebar: "Funds" icon=wallet.
+- Overview:
+  * Responsive card grid. Each card shows:
+    Name, Big Balance in base currency, small line: native currency, e.g. "BDT 24,270.00".
+    Badge for Type. Last updated datetime. Negative → red text/bg.
+  * Top-right: buttons: Add Account, Transfer, Export CSV.
+  * Summary strip: Total Across All Accounts (base), Positive Sum, Negative Sum.
+
+- Accounts page (table):
+  Columns: [Name | Type | Currency | Linked Payment Method | Opening | Current | Status | Actions]
+  Actions per row: View, Deposit, Withdraw, Transfer, Adjust, Archive.
+  "Add Account" modal fields: Name, Type, Currency, Link to Payment Method (dropdown),
+  Opening Balance, Color.
+  Deposit/Withdraw/Adjust modals post to ledger with tx_type accordingly.
+  Opening balance is created once as tx_type=opening_balance and editable only by Admin.
+
+- Transfers page: show recent transfers table + "New Transfer" button (form above).
+
+- Reconcile page:
+  * Upload CSV (date, description, amount) and match to ledger by date +/-3d and amount.
+  * Unmatched items can create new ledger rows (deposit/withdrawal) with one click.
+  * Export reconciliation report PDF.
+
+- Settings:
+  * Base Currency (default BDT), FX sources manual.
+  * Toggle: “Allow negative balances” (default true) with warning.
+
+PERMISSIONS
+- Roles: admin, manager, user.
+  * admin: full access.
+  * manager: create/edit ledger, transfers, add accounts; cannot delete, can archive.
+  * user: view only (no modals) unless explicit grant per account.
+- Soft delete only (archive). If an account has ledger rows, prevent hard delete.
+
+VALIDATION
+- Required: account exists & active, currency valid, amount > 0 for forms.
+- Prevent double-submit via request idempotency key.
+- All actions write to audit log.
+
+IMPORT/EXPORT
+- Export: accounts.csv, ledger.csv with headers.
+- Import: create accounts and opening_balance rows.
+
+MIGRATIONS
+- If expense/income tables exist, add `account_id` (fk) and backfill using payment_method_key mapping.
+
+SEED SAMPLE ACCOUNTS (create if missing)
+- Cash (BDT) -> key=cash
+- Bkash (BDT) -> key=bkash
+- Nagad (BDT) -> key=nagad
+- Rocket (BDT) -> key=rocket
+- Brac Bank (BDT) -> key=bank_brac
+- Wise Personal (USD) -> key=wise_personal
+- Redot Pay (USD) -> key=redot
+- Binance (USD) -> key=binance
+
+TEST CASES
+- Create opening balances; create expense with bkash → bkash card decreases.
+- Edit that expense amount/date → ledger reverses old and applies new.
+- Transfer Cash → Brac Bank with fee → cash decreases (amount+fee), bank increases.
+- Archive an account with transactions → allowed; hidden from dropdowns; balances frozen.

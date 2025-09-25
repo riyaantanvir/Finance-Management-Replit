@@ -10,7 +10,17 @@ import {
   type UpdateTag,
   type PaymentMethod,
   type InsertPaymentMethod,
-  type UpdatePaymentMethod
+  type UpdatePaymentMethod,
+  type Account,
+  type InsertAccount,
+  type UpdateAccount,
+  type Ledger,
+  type InsertLedger,
+  type Transfer,
+  type InsertTransfer,
+  type SettingsFinance,
+  type InsertSettingsFinance,
+  type UpdateSettingsFinance
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -52,9 +62,35 @@ export interface IStorage {
     startDate?: string;
     endDate?: string;
   }): Promise<Expense[]>;
+
+  // Account methods
+  getAccount(id: string): Promise<Account | undefined>;
+  createAccount(account: InsertAccount): Promise<Account>;
+  updateAccount(id: string, account: UpdateAccount): Promise<Account | undefined>;
+  deleteAccount(id: string): Promise<boolean>;
+  getAllAccounts(): Promise<Account[]>;
+  getActiveAccounts(): Promise<Account[]>;
+  updateAccountBalance(id: string, balance: string): Promise<Account | undefined>;
+
+  // Ledger methods
+  getLedger(id: string): Promise<Ledger | undefined>;
+  createLedger(ledger: InsertLedger): Promise<Ledger>;
+  getLedgerByAccount(accountId: string): Promise<Ledger[]>;
+  getAllLedger(): Promise<Ledger[]>;
+  deleteLedgerByRef(refType: string, refId: string): Promise<boolean>;
+
+  // Transfer methods
+  getTransfer(id: string): Promise<Transfer | undefined>;
+  createTransfer(transfer: InsertTransfer): Promise<Transfer>;
+  getAllTransfers(): Promise<Transfer[]>;
+  getTransfersByAccount(accountId: string): Promise<Transfer[]>;
+
+  // Settings methods
+  getFinanceSettings(): Promise<SettingsFinance | undefined>;
+  updateFinanceSettings(settings: UpdateSettingsFinance): Promise<SettingsFinance>;
 }
 
-export class MemStorage implements IStorage {
+export class MemStorage {
   private users: Map<string, User>;
   private tags: Map<string, Tag>;
   private paymentMethods: Map<string, PaymentMethod>;

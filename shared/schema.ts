@@ -1,7 +1,12 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Enums for Fund Management
+export const accountTypeEnum = pgEnum("account_type", ["cash", "mobile_wallet", "bank_account", "card", "crypto", "other"]);
+export const accountStatusEnum = pgEnum("account_status", ["active", "archived"]);
+export const txTypeEnum = pgEnum("tx_type", ["opening_balance", "deposit", "withdrawal", "expense", "income", "transfer_in", "transfer_out", "adjustment"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -40,6 +45,57 @@ export const expenses = pgTable("expenses", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Fund Management Tables
+export const accounts = pgTable("accounts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: accountTypeEnum("type").notNull(),
+  currency: text("currency").notNull().default("BDT"),
+  openingBalance: decimal("opening_balance", { precision: 18, scale: 2 }).notNull().default("0"),
+  currentBalance: decimal("current_balance", { precision: 18, scale: 2 }).notNull().default("0"),
+  paymentMethodKey: text("payment_method_key"), // links to existing Payment Method list
+  color: text("color"),
+  status: accountStatusEnum("status").notNull().default("active"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const ledger = pgTable("ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  txType: txTypeEnum("tx_type").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  currency: text("currency").notNull(),
+  fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
+  amountBase: decimal("amount_base", { precision: 18, scale: 2 }).notNull(),
+  refType: text("ref_type"), // "expense", "income", "transfer", etc.
+  refId: text("ref_id"),
+  note: text("note"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const transfers = pgTable("transfers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromAccountId: varchar("from_account_id").notNull().references(() => accounts.id),
+  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  currency: text("currency").notNull(),
+  fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
+  fee: decimal("fee", { precision: 18, scale: 2 }).notNull().default("0"),
+  note: text("note"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const settingsFinance = pgTable("settings_finance", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  baseCurrency: text("base_currency").notNull().default("BDT"),
+  allowNegativeBalances: boolean("allow_negative_balances").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -62,9 +118,33 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
   updatedAt: true,
 });
 
+// Fund Management Schemas
+export const insertAccountSchema = createInsertSchema(accounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLedgerSchema = createInsertSchema(ledger).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTransferSchema = createInsertSchema(transfers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSettingsFinanceSchema = createInsertSchema(settingsFinance).omit({
+  id: true,
+  updatedAt: true,
+});
+
 export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
+export const updateAccountSchema = insertAccountSchema.partial();
+export const updateSettingsFinanceSchema = insertSettingsFinanceSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -82,3 +162,15 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
 export type UpdateExpense = z.infer<typeof updateExpenseSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
+
+// Fund Management Types
+export type InsertAccount = z.infer<typeof insertAccountSchema>;
+export type Account = typeof accounts.$inferSelect;
+export type UpdateAccount = z.infer<typeof updateAccountSchema>;
+export type InsertLedger = z.infer<typeof insertLedgerSchema>;
+export type Ledger = typeof ledger.$inferSelect;
+export type InsertTransfer = z.infer<typeof insertTransferSchema>;
+export type Transfer = typeof transfers.$inferSelect;
+export type InsertSettingsFinance = z.infer<typeof insertSettingsFinanceSchema>;
+export type SettingsFinance = typeof settingsFinance.$inferSelect;
+export type UpdateSettingsFinance = z.infer<typeof updateSettingsFinanceSchema>;
