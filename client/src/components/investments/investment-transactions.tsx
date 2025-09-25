@@ -57,10 +57,7 @@ export default function InvestmentTransactions() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInvTx) => apiRequest('/api/investments/transactions', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: InsertInvTx) => apiRequest('POST', '/api/investments/transactions', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Transaction created successfully" });
       setIsCreateModalOpen(false);

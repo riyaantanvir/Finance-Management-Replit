@@ -111,10 +111,7 @@ export default function InvestmentProjects() {
 
   // Create project mutation
   const createProjectMutation = useMutation({
-    mutationFn: (data: InsertInvProject) => apiRequest('/api/investments/projects', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: InsertInvProject) => apiRequest('POST', '/api/investments/projects', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Project created successfully" });
       setIsCreateModalOpen(false);
@@ -133,10 +130,7 @@ export default function InvestmentProjects() {
   // Update project mutation
   const updateProjectMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InsertInvProject }) => 
-      apiRequest(`/api/investments/projects/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      apiRequest('PUT', `/api/investments/projects/${id}`, data),
     onSuccess: () => {
       toast({ title: "Success", description: "Project updated successfully" });
       setEditingProject(null);

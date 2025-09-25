@@ -51,10 +51,7 @@ export default function InvestmentPayouts() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInvPayout) => apiRequest('/api/investments/payouts', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: InsertInvPayout) => apiRequest('POST', '/api/investments/payouts', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Payout created successfully" });
       setIsCreateModalOpen(false);

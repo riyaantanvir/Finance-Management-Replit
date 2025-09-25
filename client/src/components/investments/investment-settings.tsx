@@ -45,10 +45,7 @@ export default function InvestmentSettings() {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: InsertInvCategory) => apiRequest('/api/investments/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: InsertInvCategory) => apiRequest('POST', '/api/investments/categories', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Category created successfully" });
       setIsCreateCategoryModalOpen(false);
@@ -62,10 +59,7 @@ export default function InvestmentSettings() {
 
   const updateCategoryMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InsertInvCategory }) => 
-      apiRequest(`/api/investments/categories/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      apiRequest('PUT', `/api/investments/categories/${id}`, data),
     onSuccess: () => {
       toast({ title: "Success", description: "Category updated successfully" });
       setEditingCategory(null);
@@ -78,9 +72,7 @@ export default function InvestmentSettings() {
   });
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/investments/categories/${id}`, {
-      method: 'DELETE',
-    }),
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/investments/categories/${id}`, undefined),
     onSuccess: () => {
       toast({ title: "Success", description: "Category deleted successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/investments/categories"] });
