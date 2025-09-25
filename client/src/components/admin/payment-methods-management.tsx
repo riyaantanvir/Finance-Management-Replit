@@ -10,11 +10,26 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { insertPaymentMethodSchema, updatePaymentMethodSchema, type PaymentMethod, type InsertPaymentMethod, type UpdatePaymentMethod } from '@shared/schema';
-import { Plus, Edit, Trash2, AlertTriangle, CreditCard } from 'lucide-react';
+import { Plus, Edit, Trash2, AlertTriangle, CreditCard, DollarSign } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
+// Common currencies list
+const CURRENCIES = [
+  { value: 'BDT', label: 'BDT - Bangladeshi Taka' },
+  { value: 'USD', label: 'USD - US Dollar' },
+  { value: 'USDT', label: 'USDT - Tether' },
+  { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'GBP', label: 'GBP - British Pound' },
+  { value: 'INR', label: 'INR - Indian Rupee' },
+  { value: 'JPY', label: 'JPY - Japanese Yen' },
+  { value: 'CNY', label: 'CNY - Chinese Yuan' },
+  { value: 'CAD', label: 'CAD - Canadian Dollar' },
+  { value: 'AUD', label: 'AUD - Australian Dollar' },
+];
 
 export function PaymentMethodsManagement() {
   const { toast } = useToast();
@@ -87,6 +102,7 @@ export function PaymentMethodsManagement() {
     defaultValues: {
       name: '',
       description: '',
+      currency: 'BDT',
     },
   });
 
@@ -95,6 +111,7 @@ export function PaymentMethodsManagement() {
     defaultValues: {
       name: '',
       description: '',
+      currency: 'BDT',
     },
   });
 
@@ -107,6 +124,7 @@ export function PaymentMethodsManagement() {
     editForm.reset({
       name: paymentMethod.name,
       description: paymentMethod.description || '',
+      currency: paymentMethod.currency || 'BDT',
     });
   };
 
@@ -179,6 +197,30 @@ export function PaymentMethodsManagement() {
                 />
                 <FormField
                   control={createForm.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-payment-method-currency">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -221,9 +263,17 @@ export function PaymentMethodsManagement() {
               <Card key={paymentMethod.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-2">
-                    <Badge variant="secondary" className="text-sm font-medium">
-                      {paymentMethod.name}
-                    </Badge>
+                    <div className="flex flex-col space-y-1">
+                      <Badge variant="secondary" className="text-sm font-medium w-fit">
+                        {paymentMethod.name}
+                      </Badge>
+                      <div className="flex items-center space-x-1">
+                        <DollarSign className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {paymentMethod.currency || 'BDT'}
+                        </span>
+                      </div>
+                    </div>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -296,6 +346,30 @@ export function PaymentMethodsManagement() {
                           {...field} 
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-edit-payment-method-currency">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CURRENCIES.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
