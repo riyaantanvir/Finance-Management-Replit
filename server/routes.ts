@@ -15,7 +15,9 @@ import {
   insertLedgerSchema,
   insertTransferSchema,
   insertSettingsFinanceSchema,
-  updateSettingsFinanceSchema
+  updateSettingsFinanceSchema,
+  insertExchangeRateSchema,
+  updateExchangeRateSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -601,6 +603,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to create finance settings" });
       }
+    }
+  });
+
+  // Exchange Rate management routes
+  app.get("/api/exchange-rates", async (req, res) => {
+    try {
+      const exchangeRates = await storage.getAllExchangeRates();
+      res.json(exchangeRates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch exchange rates" });
+    }
+  });
+
+  app.get("/api/exchange-rates/:fromCurrency/:toCurrency", async (req, res) => {
+    try {
+      const { fromCurrency, toCurrency } = req.params;
+      const exchangeRate = await storage.getExchangeRate(fromCurrency, toCurrency);
+      
+      if (!exchangeRate) {
+        return res.status(404).json({ message: "Exchange rate not found" });
+      }
+      
+      res.json(exchangeRate);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch exchange rate" });
+    }
+  });
+
+  app.post("/api/exchange-rates", async (req, res) => {
+    try {
+      const exchangeRateData = insertExchangeRateSchema.parse(req.body);
+      const exchangeRate = await storage.createExchangeRate(exchangeRateData);
+      res.status(201).json(exchangeRate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create exchange rate" });
+      }
+    }
+  });
+
+  app.put("/api/exchange-rates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exchangeRateData = updateExchangeRateSchema.parse(req.body);
+      
+      const exchangeRate = await storage.updateExchangeRate(id, exchangeRateData);
+      if (!exchangeRate) {
+        return res.status(404).json({ message: "Exchange rate not found" });
+      }
+
+      res.json(exchangeRate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update exchange rate" });
+      }
+    }
+  });
+
+  app.delete("/api/exchange-rates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteExchangeRate(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Exchange rate not found" });
+      }
+
+      res.json({ message: "Exchange rate deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete exchange rate" });
+    }
+  });
+
+  // Upsert exchange rate (create or update)
+  app.put("/api/exchange-rates/:fromCurrency/:toCurrency", async (req, res) => {
+    try {
+      const { fromCurrency, toCurrency } = req.params;
+      const { rate } = req.body;
+      
+      if (!rate || isNaN(parseFloat(rate))) {
+        return res.status(400).json({ message: "Valid rate is required" });
+      }
+      
+      const exchangeRate = await storage.upsertExchangeRate(fromCurrency, toCurrency, rate);
+      res.json(exchangeRate);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to upsert exchange rate" });
     }
   });
 
