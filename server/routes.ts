@@ -9,7 +9,13 @@ import {
   insertTagSchema,
   updateTagSchema,
   insertPaymentMethodSchema,
-  updatePaymentMethodSchema
+  updatePaymentMethodSchema,
+  insertAccountSchema,
+  updateAccountSchema,
+  insertLedgerSchema,
+  insertTransferSchema,
+  insertSettingsFinanceSchema,
+  updateSettingsFinanceSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -362,6 +368,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Payment method deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete payment method" });
+    }
+  });
+
+  // Fund Management - Account routes
+  app.get("/api/accounts", async (req, res) => {
+    try {
+      const accounts = await storage.getAllAccounts();
+      res.json(accounts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch accounts" });
+    }
+  });
+
+  app.get("/api/accounts/active", async (req, res) => {
+    try {
+      const accounts = await storage.getActiveAccounts();
+      res.json(accounts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active accounts" });
+    }
+  });
+
+  app.get("/api/accounts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const account = await storage.getAccount(id);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      res.json(account);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch account" });
+    }
+  });
+
+  app.post("/api/accounts", async (req, res) => {
+    try {
+      const accountData = insertAccountSchema.parse(req.body);
+      const account = await storage.createAccount(accountData);
+      res.status(201).json(account);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create account" });
+      }
+    }
+  });
+
+  app.put("/api/accounts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const accountData = updateAccountSchema.parse(req.body);
+      
+      const account = await storage.updateAccount(id, accountData);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      res.json(account);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update account" });
+      }
+    }
+  });
+
+  app.delete("/api/accounts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteAccount(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // Fund Management - Ledger routes
+  app.get("/api/ledger", async (req, res) => {
+    try {
+      const ledger = await storage.getAllLedger();
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch ledger entries" });
+    }
+  });
+
+  app.get("/api/ledger/account/:accountId", async (req, res) => {
+    try {
+      const { accountId } = req.params;
+      const ledger = await storage.getLedgerByAccount(accountId);
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch account ledger" });
+    }
+  });
+
+  app.post("/api/ledger", async (req, res) => {
+    try {
+      const ledgerData = insertLedgerSchema.parse(req.body);
+      
+      // Validate that the account exists
+      const account = await storage.getAccount(ledgerData.accountId);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      const ledgerEntry = await storage.createLedger(ledgerData);
+      res.status(201).json(ledgerEntry);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create ledger entry" });
+      }
+    }
+  });
+
+  // Fund Management - Transfer routes
+  app.get("/api/transfers", async (req, res) => {
+    try {
+      const transfers = await storage.getAllTransfers();
+      res.json(transfers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch transfers" });
+    }
+  });
+
+  app.get("/api/transfers/account/:accountId", async (req, res) => {
+    try {
+      const { accountId } = req.params;
+      const transfers = await storage.getTransfersByAccount(accountId);
+      res.json(transfers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch account transfers" });
+    }
+  });
+
+  app.post("/api/transfers", async (req, res) => {
+    try {
+      const transferData = insertTransferSchema.parse(req.body);
+      
+      // Validate that from and to accounts are different
+      if (transferData.fromAccountId === transferData.toAccountId) {
+        return res.status(400).json({ message: "Cannot transfer to the same account" });
+      }
+
+      // Validate that both accounts exist and are active
+      const [fromAccount, toAccount] = await Promise.all([
+        storage.getAccount(transferData.fromAccountId),
+        storage.getAccount(transferData.toAccountId)
+      ]);
+
+      if (!fromAccount) {
+        return res.status(404).json({ message: "From account not found" });
+      }
+
+      if (!toAccount) {
+        return res.status(404).json({ message: "To account not found" });
+      }
+
+      if (fromAccount.status !== 'active') {
+        return res.status(400).json({ message: "From account is not active" });
+      }
+
+      if (toAccount.status !== 'active') {
+        return res.status(400).json({ message: "To account is not active" });
+      }
+
+      // Create transfer with double-entry ledger entries (handled by DatabaseStorage.createTransfer)
+      const transfer = await storage.createTransfer(transferData);
+      res.status(201).json(transfer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create transfer" });
+      }
+    }
+  });
+
+  // Fund Management - Settings routes
+  app.get("/api/settings/finance", async (req, res) => {
+    try {
+      const settings = await storage.getFinanceSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch finance settings" });
+    }
+  });
+
+  app.put("/api/settings/finance", async (req, res) => {
+    try {
+      const settingsData = updateSettingsFinanceSchema.parse(req.body);
+      
+      // Ensure settings exist first (this will create defaults if missing)
+      await storage.getFinanceSettings();
+      
+      const settings = await storage.updateFinanceSettings(settingsData);
+      res.json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update finance settings" });
+      }
+    }
+  });
+
+  app.post("/api/settings/finance", async (req, res) => {
+    try {
+      const settingsData = insertSettingsFinanceSchema.parse(req.body);
+      
+      // Use the dedicated create method for POST requests
+      const settings = await storage.createFinanceSettings(settingsData);
+      res.status(201).json(settings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else if (error instanceof Error && error.message.includes("already exist")) {
+        res.status(409).json({ message: "Finance settings already exist. Use PUT to update." });
+      } else {
+        res.status(500).json({ message: "Failed to create finance settings" });
+      }
     }
   });
 

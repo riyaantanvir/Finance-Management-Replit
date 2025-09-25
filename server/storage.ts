@@ -87,6 +87,7 @@ export interface IStorage {
 
   // Settings methods
   getFinanceSettings(): Promise<SettingsFinance | undefined>;
+  createFinanceSettings(settings: InsertSettingsFinance): Promise<SettingsFinance>;
   updateFinanceSettings(settings: UpdateSettingsFinance): Promise<SettingsFinance>;
 }
 

@@ -514,17 +514,32 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  // Check if settings exist without creating defaults
+  private async financeSettingsExist(): Promise<SettingsFinance | undefined> {
+    return await db.query.settingsFinance.findFirst();
+  }
+
+  async createFinanceSettings(settings: InsertSettingsFinance): Promise<SettingsFinance> {
+    // Check if settings already exist without creating defaults
+    const existingSettings = await this.financeSettingsExist();
+    
+    if (existingSettings) {
+      throw new Error("Finance settings already exist. Use update instead.");
+    }
+    
+    // Create new settings with provided data and defaults
+    const [result] = await db.insert(settingsFinance).values({
+      baseCurrency: settings.baseCurrency || 'BDT',
+      allowNegativeBalances: settings.allowNegativeBalances ?? true
+    }).returning();
+    return result;
+  }
+
   async updateFinanceSettings(settings: UpdateSettingsFinance): Promise<SettingsFinance> {
     const existingSettings = await this.getFinanceSettings();
     
     if (!existingSettings) {
-      // Create new if none exist
-      const [result] = await db.insert(settingsFinance).values({
-        ...settings,
-        baseCurrency: settings.baseCurrency || 'BDT',
-        allowNegativeBalances: settings.allowNegativeBalances ?? true
-      }).returning();
-      return result;
+      throw new Error("No finance settings found. Create settings first.");
     }
     
     const [result] = await db.update(settingsFinance)
