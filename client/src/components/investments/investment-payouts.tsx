@@ -210,7 +210,7 @@ export default function InvestmentPayouts() {
                     <FormItem>
                       <FormLabel>Note</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Payout details" {...field} />
+                        <Textarea placeholder="Payout details" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -49,10 +49,14 @@ export default function InvestmentTransactions() {
   const createForm = useForm<InsertInvTx>({
     resolver: zodResolver(insertInvTxSchema),
     defaultValues: {
+      projectId: "",
       date: new Date().toISOString().split('T')[0],
       direction: "cost",
       currency: financeSettings?.baseCurrency || "BDT",
       fxRate: "1",
+      accountId: "",
+      amount: "",
+      note: "",
     },
   });
 
@@ -245,7 +249,7 @@ export default function InvestmentTransactions() {
                     <FormItem>
                       <FormLabel>Note</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Transaction details" {...field} />
+                        <Textarea placeholder="Transaction details" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

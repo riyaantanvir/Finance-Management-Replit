@@ -349,6 +349,7 @@ export default function InvestmentProjects() {
                         <Textarea 
                           placeholder="Project description or notes" 
                           {...field} 
+                          value={field.value || ""}
                           data-testid="textarea-project-notes"
                         />
                       </FormControl>
@@ -805,7 +806,7 @@ export default function InvestmentProjects() {
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Project description or notes" {...field} />
+                      <Textarea placeholder="Project description or notes" {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
