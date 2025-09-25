@@ -16,6 +16,11 @@ import FundsTransfersPage from "@/pages/funds-transfers";
 import FundsReconcilePage from "@/pages/funds-reconcile";
 import FundsSettingsPage from "@/pages/funds-settings";
 import InvestmentsOverviewPage from "@/pages/investments-overview";
+import InvestmentsProjectsPage from "@/pages/investments-projects";
+import InvestmentsTransactionsPage from "@/pages/investments-transactions";
+import InvestmentsPayoutsPage from "@/pages/investments-payouts";
+import InvestmentsReportsPage from "@/pages/investments-reports";
+import InvestmentsSettingsPage from "@/pages/investments-settings";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -55,6 +60,11 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
             <Route path="/funds/reconcile" component={FundsReconcilePage} />
             <Route path="/funds/settings" component={FundsSettingsPage} />
             <Route path="/investments/overview" component={InvestmentsOverviewPage} />
+            <Route path="/investments/projects" component={InvestmentsProjectsPage} />
+            <Route path="/investments/transactions" component={InvestmentsTransactionsPage} />
+            <Route path="/investments/payouts" component={InvestmentsPayoutsPage} />
+            <Route path="/investments/reports" component={InvestmentsReportsPage} />
+            <Route path="/investments/settings" component={InvestmentsSettingsPage} />
           </Switch>
         </main>
       </div>
