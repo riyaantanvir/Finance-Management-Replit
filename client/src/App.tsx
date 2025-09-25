@@ -15,6 +15,7 @@ import FundsAccountsPage from "@/pages/funds-accounts";
 import FundsTransfersPage from "@/pages/funds-transfers";
 import FundsReconcilePage from "@/pages/funds-reconcile";
 import FundsSettingsPage from "@/pages/funds-settings";
+import InvestmentsOverviewPage from "@/pages/investments-overview";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -53,6 +54,7 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
             <Route path="/funds/transfers" component={FundsTransfersPage} />
             <Route path="/funds/reconcile" component={FundsReconcilePage} />
             <Route path="/funds/settings" component={FundsSettingsPage} />
+            <Route path="/investments/overview" component={InvestmentsOverviewPage} />
           </Switch>
         </main>
       </div>
