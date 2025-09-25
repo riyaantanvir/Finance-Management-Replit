@@ -102,6 +102,7 @@ export default function InvestmentProjects() {
       startDate: new Date().toISOString().split('T')[0],
       status: "active",
       currency: financeSettings?.baseCurrency || "BDT",
+      initialAmount: "0",
       notes: "",
     },
   });
@@ -324,6 +325,27 @@ export default function InvestmentProjects() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={createForm.control}
+                  name="initialAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Initial Investment Amount</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          placeholder="0.00" 
+                          {...field} 
+                          data-testid="input-initial-amount"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={createForm.control}
