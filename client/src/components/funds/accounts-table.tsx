@@ -29,7 +29,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
     type: '',
     currency: 'BDT',
     openingBalance: '0',
-    paymentAccount: '',
+    paymentAccount: 'none',
   });
 
   const queryClient = useQueryClient();
@@ -89,7 +89,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
         type: '',
         currency: 'BDT',
         openingBalance: '0',
-        paymentAccount: '',
+        paymentAccount: 'none',
       });
       toast({
         title: "Success",
@@ -181,7 +181,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
       type: newAccountData.type,
       currency: newAccountData.currency,
       openingBalance: newAccountData.openingBalance,
-      paymentMethodKey: selectedPaymentMethod?.name || null,
+      paymentMethodKey: (newAccountData.paymentAccount === 'none' || !selectedPaymentMethod) ? null : selectedPaymentMethod.name,
     });
   };
 
@@ -319,7 +319,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
                     <SelectValue placeholder="Select Payment Method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {paymentMethods.map((method) => (
                       <SelectItem key={method.id} value={method.id}>
                         {method.name}
