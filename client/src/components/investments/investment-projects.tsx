@@ -39,6 +39,8 @@ export default function InvestmentProjects() {
   // Fetch data
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery<InvProject[]>({
     queryKey: ["/api/investments/projects"],
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const { data: transactions = [] } = useQuery<InvTx[]>({
@@ -117,6 +119,7 @@ export default function InvestmentProjects() {
       setIsCreateModalOpen(false);
       createForm.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/investments/projects"] });
+      refetchProjects();
     },
     onError: (error: any) => {
       toast({ 
