@@ -95,6 +95,22 @@ export default function Dashboard() {
     };
   }, [filteredExpenses]);
 
+  // Calculate tag-wise expense breakdown from filtered expenses
+  const tagBreakdown = useMemo(() => {
+    const expenses = filteredExpenses.filter(e => e.type === 'expense');
+    const tagTotals = expenses.reduce((acc, expense) => {
+      const tag = expense.tag;
+      const amount = parseFloat(expense.amount);
+      acc[tag] = (acc[tag] || 0) + amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Convert to array and sort by amount (highest first)
+    return Object.entries(tagTotals)
+      .map(([tag, amount]) => ({ tag, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [filteredExpenses]);
+
   const formatCurrency = (amount: number) => `৳ ${amount.toLocaleString()}`;
 
   const getTransactionIcon = (type: string, tag: string) => {
@@ -257,6 +273,62 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tag Expense Breakdown */}
+      {tagBreakdown.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Expense Breakdown by Tag</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all'
+                  ? 'Filtered view'
+                  : 'All time'
+                }
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {tagBreakdown.map(({ tag, amount }) => {
+                const percentage = stats.totalExpenses > 0 ? ((amount / stats.totalExpenses) * 100) : 0;
+                
+                return (
+                  <div
+                    key={tag}
+                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
+                    data-testid={`tag-breakdown-${tag}`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${getTransactionBgColor('expense', tag)}`}></div>
+                        <span className="font-medium capitalize text-sm" data-testid={`text-tag-name-${tag}`}>
+                          {tag}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground" data-testid={`text-tag-percentage-${tag}`}>
+                        {percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-lg font-bold text-red-600" data-testid={`text-tag-amount-${tag}`}>
+                        {formatCurrency(amount)}
+                      </p>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                          data-testid={`progress-tag-${tag}`}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filtered Transactions */}
       <Card>
