@@ -20,7 +20,10 @@ import {
   type InsertTransfer,
   type SettingsFinance,
   type InsertSettingsFinance,
-  type UpdateSettingsFinance
+  type UpdateSettingsFinance,
+  type ExchangeRate,
+  type InsertExchangeRate,
+  type UpdateExchangeRate
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -84,6 +87,14 @@ export interface IStorage {
   createTransfer(transfer: InsertTransfer): Promise<Transfer>;
   getAllTransfers(): Promise<Transfer[]>;
   getTransfersByAccount(accountId: string): Promise<Transfer[]>;
+
+  // Exchange Rate methods
+  getExchangeRate(fromCurrency: string, toCurrency: string): Promise<ExchangeRate | undefined>;
+  createExchangeRate(exchangeRate: InsertExchangeRate): Promise<ExchangeRate>;
+  updateExchangeRate(id: string, exchangeRate: UpdateExchangeRate): Promise<ExchangeRate | undefined>;
+  deleteExchangeRate(id: string): Promise<boolean>;
+  getAllExchangeRates(): Promise<ExchangeRate[]>;
+  upsertExchangeRate(fromCurrency: string, toCurrency: string, rate: string): Promise<ExchangeRate>;
 
   // Settings methods
   getFinanceSettings(): Promise<SettingsFinance | undefined>;
@@ -213,6 +224,7 @@ export class MemStorage {
       ...insertPaymentMethod, 
       id,
       description: insertPaymentMethod.description ?? null,
+      currency: insertPaymentMethod.currency ?? 'BDT',
       createdAt: now,
       updatedAt: now,
     };

@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -23,7 +23,10 @@ import {
   type InsertTransfer,
   type SettingsFinance,
   type InsertSettingsFinance,
-  type UpdateSettingsFinance
+  type UpdateSettingsFinance,
+  type ExchangeRate,
+  type InsertExchangeRate,
+  type UpdateExchangeRate
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -620,5 +623,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(settingsFinance.id, existingSettings.id))
       .returning();
     return result;
+  }
+
+  // Exchange Rate methods
+  async getExchangeRate(fromCurrency: string, toCurrency: string): Promise<ExchangeRate | undefined> {
+    const result = await db.query.exchangeRates.findFirst({
+      where: and(
+        eq(exchangeRates.fromCurrency, fromCurrency),
+        eq(exchangeRates.toCurrency, toCurrency)
+      )
+    });
+    return result;
+  }
+
+  async createExchangeRate(exchangeRate: InsertExchangeRate): Promise<ExchangeRate> {
+    const [result] = await db.insert(exchangeRates).values(exchangeRate).returning();
+    return result;
+  }
+
+  async updateExchangeRate(id: string, exchangeRate: UpdateExchangeRate): Promise<ExchangeRate | undefined> {
+    const [result] = await db.update(exchangeRates)
+      .set({ ...exchangeRate, updatedAt: new Date() })
+      .where(eq(exchangeRates.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteExchangeRate(id: string): Promise<boolean> {
+    const result = await db.delete(exchangeRates).where(eq(exchangeRates.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllExchangeRates(): Promise<ExchangeRate[]> {
+    return await db.query.exchangeRates.findMany({
+      orderBy: [exchangeRates.fromCurrency, exchangeRates.toCurrency]
+    });
+  }
+
+  async upsertExchangeRate(fromCurrency: string, toCurrency: string, rate: string): Promise<ExchangeRate> {
+    // Try to find existing exchange rate
+    const existingRate = await this.getExchangeRate(fromCurrency, toCurrency);
+    
+    if (existingRate) {
+      // Update existing
+      const updated = await this.updateExchangeRate(existingRate.id, { rate });
+      return updated!;
+    } else {
+      // Create new
+      return await this.createExchangeRate({
+        fromCurrency,
+        toCurrency,
+        rate
+      });
+    }
   }
 }
