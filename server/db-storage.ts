@@ -166,25 +166,88 @@ export class DatabaseStorage implements IStorage {
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
     const [result] = await db.insert(expenses).values(expense).returning();
+    
+    // Integrate with Fund Management: Create ledger entries for linked accounts
+    await this.integrateExpenseWithFundManagement(result);
+    
     return result;
+  }
+
+  // Helper method to integrate expense with Fund Management
+  private async integrateExpenseWithFundManagement(expense: Expense): Promise<void> {
+    try {
+      // Find accounts linked to this payment method
+      const linkedAccounts = await this.getAccountsByPaymentMethod(expense.paymentMethod);
+      
+      if (linkedAccounts.length === 0) {
+        // No accounts linked to this payment method, skip integration
+        return;
+      }
+
+      // For multiple accounts with same payment method, use the first active one
+      // In future, this could be enhanced to allow user selection
+      const targetAccount = linkedAccounts[0];
+      
+      // Determine transaction type and amount
+      const amount = parseFloat(expense.amount);
+      const isIncome = expense.type === 'income';
+      const ledgerAmount = isIncome ? amount : -amount; // Income = positive, Expense = negative
+      const txType = isIncome ? 'income' : 'expense';
+      
+      // Create ledger entry
+      await this.createLedger({
+        accountId: targetAccount.id,
+        txType: txType as any,
+        amount: ledgerAmount.toString(),
+        currency: targetAccount.currency,
+        fxRate: '1',
+        amountBase: ledgerAmount.toString(),
+        refType: 'expense',
+        refId: expense.id,
+        note: `${expense.type}: ${expense.details}`,
+        createdBy: null // Could be enhanced to track user
+      });
+      
+    } catch (error) {
+      // Log error but don't fail the expense creation
+      console.error('Failed to integrate expense with Fund Management:', error);
+    }
   }
 
   async createBulkExpenses(insertExpenses: InsertExpense[]): Promise<Expense[]> {
     if (insertExpenses.length === 0) return [];
     
     const results = await db.insert(expenses).values(insertExpenses).returning();
+    
+    // Integrate each expense with Fund Management
+    for (const expense of results) {
+      await this.integrateExpenseWithFundManagement(expense);
+    }
+    
     return results;
   }
 
   async updateExpense(id: string, expense: UpdateExpense): Promise<Expense | undefined> {
+    // Delete old ledger entries for this expense
+    await this.deleteLedgerByRef('expense', id);
+    
     const [result] = await db.update(expenses)
       .set({ ...expense, updatedAt: new Date() })
       .where(eq(expenses.id, id))
       .returning();
+    
+    // Re-integrate with Fund Management using updated data
+    if (result) {
+      await this.integrateExpenseWithFundManagement(result);
+    }
+    
     return result;
   }
 
   async deleteExpense(id: string): Promise<boolean> {
+    // Delete associated ledger entries first
+    await this.deleteLedgerByRef('expense', id);
+    
     const result = await db.delete(expenses).where(eq(expenses.id, id));
     return result.rowCount > 0;
   }
@@ -333,6 +396,16 @@ export class DatabaseStorage implements IStorage {
   async getActiveAccounts(): Promise<Account[]> {
     return await db.query.accounts.findMany({
       where: eq(accounts.status, 'active'),
+      orderBy: [accounts.name]
+    });
+  }
+
+  async getAccountsByPaymentMethod(paymentMethodName: string): Promise<Account[]> {
+    return await db.query.accounts.findMany({
+      where: and(
+        eq(accounts.paymentMethodKey, paymentMethodName),
+        eq(accounts.status, 'active')
+      ),
       orderBy: [accounts.name]
     });
   }
