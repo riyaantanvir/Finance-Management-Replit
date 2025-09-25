@@ -6,10 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Edit, Trash2, Plus } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Account, UpdateAccount } from "@shared/schema";
+import { Account, UpdateAccount, PaymentMethod } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
 interface AccountsTableProps {
@@ -29,11 +29,16 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
     type: '',
     currency: 'BDT',
     openingBalance: '0',
-    paymentMethodKey: '',
+    paymentAccount: '',
   });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Fetch payment methods for dropdown
+  const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
+    queryKey: ["/api/payment-methods"],
+  });
 
   const updateAccountMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Account> }) =>
@@ -84,7 +89,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
         type: '',
         currency: 'BDT',
         openingBalance: '0',
-        paymentMethodKey: '',
+        paymentAccount: '',
       });
       toast({
         title: "Success",
@@ -168,12 +173,15 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
       return;
     }
 
+    // Find the selected payment method name to store as paymentMethodKey
+    const selectedPaymentMethod = paymentMethods.find(pm => pm.id === newAccountData.paymentAccount);
+    
     createAccountMutation.mutate({
       name: newAccountData.name,
       type: newAccountData.type,
       currency: newAccountData.currency,
       openingBalance: newAccountData.openingBalance,
-      paymentMethodKey: newAccountData.paymentMethodKey || null,
+      paymentMethodKey: selectedPaymentMethod?.name || null,
     });
   };
 
@@ -302,13 +310,23 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Payment Method Key</label>
-                <Input
-                  value={newAccountData.paymentMethodKey}
-                  onChange={(e) => setNewAccountData({ ...newAccountData, paymentMethodKey: e.target.value })}
-                  placeholder="Links to expense payment methods"
-                  data-testid="input-new-account-payment-method"
-                />
+                <label className="text-sm font-medium">Payment Account</label>
+                <Select
+                  value={newAccountData.paymentAccount}
+                  onValueChange={(value) => setNewAccountData({ ...newAccountData, paymentAccount: value })}
+                >
+                  <SelectTrigger data-testid="select-new-account-payment-method">
+                    <SelectValue placeholder="Select Payment Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {paymentMethods.map((method) => (
+                      <SelectItem key={method.id} value={method.id}>
+                        {method.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex items-center space-x-2">
