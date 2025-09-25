@@ -8,6 +8,12 @@ export const accountTypeEnum = pgEnum("account_type", ["cash", "mobile_wallet", 
 export const accountStatusEnum = pgEnum("account_status", ["active", "archived"]);
 export const txTypeEnum = pgEnum("tx_type", ["opening_balance", "deposit", "withdrawal", "expense", "income", "transfer_in", "transfer_out", "adjustment"]);
 
+// Enums for Investment Management
+export const projectTypeEnum = pgEnum("project_type", ["gher", "capital", "other"]);
+export const projectStatusEnum = pgEnum("project_status", ["active", "closed"]);
+export const categoryKindEnum = pgEnum("category_kind", ["cost", "income"]);
+export const transactionDirectionEnum = pgEnum("transaction_direction", ["income", "cost"]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -105,6 +111,57 @@ export const settingsFinance = pgTable("settings_finance", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Investment Management Tables
+export const invProjects = pgTable("inv_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: projectTypeEnum("type").notNull().default("other"),
+  startDate: text("start_date").notNull(),
+  status: projectStatusEnum("status").notNull().default("active"),
+  currency: text("currency").notNull().default("BDT"),
+  notes: text("notes"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const invCategories = pgTable("inv_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => invProjects.id),
+  name: text("name").notNull(),
+  kind: categoryKindEnum("kind").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const invTx = pgTable("inv_tx", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => invProjects.id),
+  categoryId: varchar("category_id").notNull().references(() => invCategories.id),
+  date: text("date").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  direction: transactionDirectionEnum("direction").notNull(),
+  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  currency: text("currency").notNull(),
+  fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
+  amountBase: decimal("amount_base", { precision: 18, scale: 2 }).notNull(),
+  note: text("note"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const invPayouts = pgTable("inv_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => invProjects.id),
+  date: text("date").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id),
+  currency: text("currency").notNull(),
+  fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
+  note: text("note"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -154,12 +211,38 @@ export const insertSettingsFinanceSchema = createInsertSchema(settingsFinance).o
   updatedAt: true,
 });
 
+// Investment Management Schemas
+export const insertInvProjectSchema = createInsertSchema(invProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvCategorySchema = createInsertSchema(invCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInvTxSchema = createInsertSchema(invTx).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInvPayoutSchema = createInsertSchema(invPayouts).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
 export const updateAccountSchema = insertAccountSchema.partial();
 export const updateExchangeRateSchema = insertExchangeRateSchema.partial();
 export const updateSettingsFinanceSchema = insertSettingsFinanceSchema.partial();
+
+// Investment Management Update Schemas
+export const updateInvProjectSchema = insertInvProjectSchema.partial();
+export const updateInvTxSchema = insertInvTxSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -192,3 +275,15 @@ export type UpdateExchangeRate = z.infer<typeof updateExchangeRateSchema>;
 export type InsertSettingsFinance = z.infer<typeof insertSettingsFinanceSchema>;
 export type SettingsFinance = typeof settingsFinance.$inferSelect;
 export type UpdateSettingsFinance = z.infer<typeof updateSettingsFinanceSchema>;
+
+// Investment Management Types
+export type InsertInvProject = z.infer<typeof insertInvProjectSchema>;
+export type InvProject = typeof invProjects.$inferSelect;
+export type UpdateInvProject = z.infer<typeof updateInvProjectSchema>;
+export type InsertInvCategory = z.infer<typeof insertInvCategorySchema>;
+export type InvCategory = typeof invCategories.$inferSelect;
+export type InsertInvTx = z.infer<typeof insertInvTxSchema>;
+export type InvTx = typeof invTx.$inferSelect;
+export type UpdateInvTx = z.infer<typeof updateInvTxSchema>;
+export type InsertInvPayout = z.infer<typeof insertInvPayoutSchema>;
+export type InvPayout = typeof invPayouts.$inferSelect;

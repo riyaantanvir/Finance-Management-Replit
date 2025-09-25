@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -26,7 +26,17 @@ import {
   type UpdateSettingsFinance,
   type ExchangeRate,
   type InsertExchangeRate,
-  type UpdateExchangeRate
+  type UpdateExchangeRate,
+  type InvProject,
+  type InsertInvProject,
+  type UpdateInvProject,
+  type InvCategory,
+  type InsertInvCategory,
+  type InvTx,
+  type InsertInvTx,
+  type UpdateInvTx,
+  type InvPayout,
+  type InsertInvPayout
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -693,5 +703,460 @@ export class DatabaseStorage implements IStorage {
         rate
       });
     }
+  }
+
+  // Investment Project methods
+  async getInvProject(id: string): Promise<InvProject | undefined> {
+    const result = await db.query.invProjects.findFirst({
+      where: eq(invProjects.id, id)
+    });
+    return result;
+  }
+
+  async createInvProject(project: InsertInvProject): Promise<InvProject> {
+    const [result] = await db.insert(invProjects).values(project).returning();
+    return result;
+  }
+
+  async updateInvProject(id: string, project: UpdateInvProject): Promise<InvProject | undefined> {
+    const [result] = await db.update(invProjects)
+      .set({ ...project, updatedAt: new Date() })
+      .where(eq(invProjects.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteInvProject(id: string): Promise<boolean> {
+    const result = await db.delete(invProjects).where(eq(invProjects.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllInvProjects(): Promise<InvProject[]> {
+    return await db.query.invProjects.findMany({
+      orderBy: [desc(invProjects.createdAt)]
+    });
+  }
+
+  async getActiveInvProjects(): Promise<InvProject[]> {
+    return await db.query.invProjects.findMany({
+      where: eq(invProjects.status, 'active'),
+      orderBy: [desc(invProjects.createdAt)]
+    });
+  }
+
+  // Investment Category methods
+  async getInvCategory(id: string): Promise<InvCategory | undefined> {
+    const result = await db.query.invCategories.findFirst({
+      where: eq(invCategories.id, id)
+    });
+    return result;
+  }
+
+  async createInvCategory(category: InsertInvCategory): Promise<InvCategory> {
+    const [result] = await db.insert(invCategories).values(category).returning();
+    return result;
+  }
+
+  async deleteInvCategory(id: string): Promise<boolean> {
+    const result = await db.delete(invCategories).where(eq(invCategories.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getInvCategoriesByProject(projectId: string): Promise<InvCategory[]> {
+    return await db.query.invCategories.findMany({
+      where: eq(invCategories.projectId, projectId),
+      orderBy: [invCategories.name]
+    });
+  }
+
+  async getAllInvCategories(): Promise<InvCategory[]> {
+    return await db.query.invCategories.findMany({
+      orderBy: [invCategories.name]
+    });
+  }
+
+  // Investment Transaction methods
+  async getInvTx(id: string): Promise<InvTx | undefined> {
+    const result = await db.query.invTx.findFirst({
+      where: eq(invTx.id, id)
+    });
+    return result;
+  }
+
+  async createInvTx(tx: InsertInvTx): Promise<InvTx> {
+    const [result] = await db.insert(invTx).values(tx).returning();
+    
+    // Get the project for reference
+    const project = await this.getInvProject(tx.projectId);
+    const projectName = project?.name || 'Unknown Project';
+    
+    if (tx.direction === 'cost') {
+      // Investment Cost: Double-entry accounting
+      // 1. Credit the cash/bank account (money leaves)
+      await this.createLedger({
+        accountId: tx.accountId,
+        txType: 'withdrawal',
+        amount: `-${tx.amount}`,
+        currency: tx.currency,
+        fxRate: (tx.fxRate || '1').toString(),
+        amountBase: `-${tx.amountBase}`,
+        refType: 'investment_tx',
+        refId: result.id,
+        note: tx.note || `Investment cost: ${projectName}`,
+        createdBy: tx.createdBy
+      });
+      
+      // 2. Find or create an Investment Asset account for this project
+      const investmentAccount = await this.findOrCreateInvestmentAccount(tx.projectId, projectName, tx.currency);
+      
+      // 3. Debit the investment asset account (investment value increases)  
+      await this.createLedger({
+        accountId: investmentAccount.id,
+        txType: 'deposit',
+        amount: tx.amount.toString(),
+        currency: tx.currency,
+        fxRate: (tx.fxRate || '1').toString(),
+        amountBase: tx.amountBase.toString(),
+        refType: 'investment_tx',
+        refId: result.id,
+        note: tx.note || `Investment in ${projectName}`,
+        createdBy: tx.createdBy
+      });
+      
+    } else {
+      // Investment Income: Double-entry accounting
+      // 1. Debit the cash/bank account (money comes in)
+      await this.createLedger({
+        accountId: tx.accountId,
+        txType: 'deposit',
+        amount: tx.amount.toString(),
+        currency: tx.currency,
+        fxRate: (tx.fxRate || '1').toString(),
+        amountBase: tx.amountBase.toString(),
+        refType: 'investment_tx',
+        refId: result.id,
+        note: tx.note || `Income from ${projectName}`,
+        createdBy: tx.createdBy
+      });
+      
+      // 2. Find or create an Investment Revenue account for this project
+      const revenueAccount = await this.findOrCreateInvestmentRevenueAccount(tx.projectId, projectName, tx.currency);
+      
+      // 3. Credit the investment revenue account (revenue increases)
+      await this.createLedger({
+        accountId: revenueAccount.id,
+        txType: 'withdrawal',
+        amount: `-${tx.amount}`,
+        currency: tx.currency,
+        fxRate: (tx.fxRate || '1').toString(),
+        amountBase: `-${tx.amountBase}`,
+        refType: 'investment_tx',
+        refId: result.id,
+        note: tx.note || `Revenue from ${projectName}`,
+        createdBy: tx.createdBy
+      });
+    }
+
+    return result;
+  }
+
+  async updateInvTx(id: string, tx: UpdateInvTx): Promise<InvTx | undefined> {
+    // First, delete existing ledger entries (both sides of double-entry)
+    await this.deleteLedgerByRef('investment_tx', id);
+    
+    // Update the transaction
+    const [result] = await db.update(invTx)
+      .set(tx)
+      .where(eq(invTx.id, id))
+      .returning();
+
+    if (result) {
+      // Get the project for reference
+      const project = await this.getInvProject(result.projectId);
+      const projectName = project?.name || 'Unknown Project';
+      
+      if (result.direction === 'cost') {
+        // Investment Cost: Double-entry accounting
+        // 1. Credit the cash/bank account (money leaves)
+        await this.createLedger({
+          accountId: result.accountId,
+          txType: 'withdrawal',
+          amount: `-${result.amount}`,
+          currency: result.currency,
+          fxRate: (result.fxRate || '1').toString(),
+          amountBase: `-${result.amountBase}`,
+          refType: 'investment_tx',
+          refId: result.id,
+          note: result.note || `Investment cost: ${projectName}`,
+          createdBy: result.createdBy
+        });
+        
+        // 2. Find or create an Investment Asset account for this project
+        const investmentAccount = await this.findOrCreateInvestmentAccount(result.projectId, projectName, result.currency);
+        
+        // 3. Debit the investment asset account (investment value increases)  
+        await this.createLedger({
+          accountId: investmentAccount.id,
+          txType: 'deposit',
+          amount: result.amount.toString(),
+          currency: result.currency,
+          fxRate: (result.fxRate || '1').toString(),
+          amountBase: result.amountBase.toString(),
+          refType: 'investment_tx',
+          refId: result.id,
+          note: result.note || `Investment in ${projectName}`,
+          createdBy: result.createdBy
+        });
+        
+      } else {
+        // Investment Income: Double-entry accounting
+        // 1. Debit the cash/bank account (money comes in)
+        await this.createLedger({
+          accountId: result.accountId,
+          txType: 'deposit',
+          amount: result.amount.toString(),
+          currency: result.currency,
+          fxRate: (result.fxRate || '1').toString(),
+          amountBase: result.amountBase.toString(),
+          refType: 'investment_tx',
+          refId: result.id,
+          note: result.note || `Income from ${projectName}`,
+          createdBy: result.createdBy
+        });
+        
+        // 2. Find or create an Investment Revenue account for this project
+        const revenueAccount = await this.findOrCreateInvestmentRevenueAccount(result.projectId, projectName, result.currency);
+        
+        // 3. Credit the investment revenue account (revenue increases)
+        await this.createLedger({
+          accountId: revenueAccount.id,
+          txType: 'withdrawal',
+          amount: `-${result.amount}`,
+          currency: result.currency,
+          fxRate: (result.fxRate || '1').toString(),
+          amountBase: `-${result.amountBase}`,
+          refType: 'investment_tx',
+          refId: result.id,
+          note: result.note || `Revenue from ${projectName}`,
+          createdBy: result.createdBy
+        });
+      }
+    }
+
+    return result;
+  }
+
+  async deleteInvTx(id: string): Promise<boolean> {
+    // First get the transaction to know which account to update
+    const transaction = await this.getInvTx(id);
+    if (!transaction) return false;
+
+    // Delete ledger entry
+    await this.deleteLedgerByRef('investment_tx', id);
+    
+    // Delete the transaction
+    const result = await db.delete(invTx).where(eq(invTx.id, id));
+    
+    if (result.rowCount > 0) {
+      // Recompute account balance
+      await this.recomputeAccountBalance(transaction.accountId);
+    }
+
+    return result.rowCount > 0;
+  }
+
+  async getAllInvTx(): Promise<InvTx[]> {
+    return await db.query.invTx.findMany({
+      orderBy: [desc(invTx.createdAt)]
+    });
+  }
+
+  async getInvTxByProject(projectId: string): Promise<InvTx[]> {
+    return await db.query.invTx.findMany({
+      where: eq(invTx.projectId, projectId),
+      orderBy: [desc(invTx.createdAt)]
+    });
+  }
+
+  async getFilteredInvTx(filters: {
+    projectId?: string;
+    categoryId?: string;
+    direction?: string;
+    accountId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<InvTx[]> {
+    const conditions = [];
+
+    if (filters.projectId) {
+      conditions.push(eq(invTx.projectId, filters.projectId));
+    }
+    if (filters.categoryId) {
+      conditions.push(eq(invTx.categoryId, filters.categoryId));
+    }
+    if (filters.direction) {
+      conditions.push(eq(invTx.direction, filters.direction as any));
+    }
+    if (filters.accountId) {
+      conditions.push(eq(invTx.accountId, filters.accountId));
+    }
+    if (filters.startDate) {
+      conditions.push(gte(invTx.date, filters.startDate));
+    }
+    if (filters.endDate) {
+      conditions.push(lte(invTx.date, filters.endDate));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db.query.invTx.findMany({
+      where: whereClause,
+      orderBy: [desc(invTx.createdAt)]
+    });
+  }
+
+  // Investment Payout methods
+  async getInvPayout(id: string): Promise<InvPayout | undefined> {
+    const result = await db.query.invPayouts.findFirst({
+      where: eq(invPayouts.id, id)
+    });
+    return result;
+  }
+
+  async createInvPayout(payout: InsertInvPayout): Promise<InvPayout> {
+    const [result] = await db.insert(invPayouts).values(payout).returning();
+    
+    // Get the project for reference
+    const project = await this.getInvProject(payout.projectId);
+    const projectName = project?.name || 'Unknown Project';
+    
+    // Investment Payout: Double-entry accounting
+    // 1. Debit the cash/bank account (money received)
+    await this.createLedger({
+      accountId: payout.toAccountId,
+      txType: 'deposit',
+      amount: payout.amount.toString(),
+      currency: payout.currency,
+      fxRate: (payout.fxRate || '1').toString(),
+      amountBase: (parseFloat(payout.amount.toString()) * parseFloat((payout.fxRate || '1').toString())).toString(),
+      refType: 'investment_payout',
+      refId: result.id,
+      note: payout.note || `Payout from ${projectName}`,
+      createdBy: payout.createdBy
+    });
+
+    // 2. Find or create an Investment Asset account for this project and credit it (decrease investment value)
+    const investmentAccount = await this.findOrCreateInvestmentAccount(payout.projectId, projectName, payout.currency);
+    
+    // 3. Credit the investment asset account (investment value decreases)
+    await this.createLedger({
+      accountId: investmentAccount.id,
+      txType: 'withdrawal',
+      amount: `-${payout.amount}`,
+      currency: payout.currency,
+      fxRate: (payout.fxRate || '1').toString(),
+      amountBase: `-${(parseFloat(payout.amount.toString()) * parseFloat((payout.fxRate || '1').toString())).toString()}`,
+      refType: 'investment_payout',
+      refId: result.id,
+      note: payout.note || `Payout from ${projectName}`,
+      createdBy: payout.createdBy
+    });
+
+    return result;
+  }
+
+  async deleteInvPayout(id: string): Promise<boolean> {
+    // First get the payout to know which account to update
+    const payout = await this.getInvPayout(id);
+    if (!payout) return false;
+
+    // Delete ledger entry (this will also trigger account balance recomputation)
+    await this.deleteLedgerByRef('investment_payout', id);
+    
+    // Delete the payout
+    const result = await db.delete(invPayouts).where(eq(invPayouts.id, id));
+    
+    if (result.rowCount > 0) {
+      // Recompute account balance to ensure consistency
+      await this.recomputeAccountBalance(payout.toAccountId);
+    }
+
+    return result.rowCount > 0;
+  }
+
+  async getAllInvPayouts(): Promise<InvPayout[]> {
+    return await db.query.invPayouts.findMany({
+      orderBy: [desc(invPayouts.createdAt)]
+    });
+  }
+
+  async getInvPayoutsByProject(projectId: string): Promise<InvPayout[]> {
+    return await db.query.invPayouts.findMany({
+      where: eq(invPayouts.projectId, projectId),
+      orderBy: [desc(invPayouts.createdAt)]
+    });
+  }
+
+  // Helper methods for investment double-entry bookkeeping
+  private async findOrCreateInvestmentAccount(projectId: string, projectName: string, currency: string): Promise<Account> {
+    const accountName = `Investment Assets: ${projectName}`;
+    
+    // Try to find existing investment account for this project
+    const existingAccount = await db.query.accounts.findFirst({
+      where: and(
+        eq(accounts.name, accountName),
+        eq(accounts.currency, currency)
+      )
+    });
+    
+    if (existingAccount) {
+      return existingAccount;
+    }
+    
+    // Create new investment asset account
+    const [newAccount] = await db.insert(accounts).values({
+      name: accountName,
+      type: 'other',
+      currency: currency,
+      openingBalance: '0',
+      currentBalance: '0',
+      status: 'active',
+      paymentMethodKey: null,
+      color: '#4CAF50', // Green for investment assets
+      createdBy: 'system'
+    }).returning();
+    
+    return newAccount;
+  }
+
+  private async findOrCreateInvestmentRevenueAccount(projectId: string, projectName: string, currency: string): Promise<Account> {
+    const accountName = `Investment Revenue: ${projectName}`;
+    
+    // Try to find existing revenue account for this project
+    const existingAccount = await db.query.accounts.findFirst({
+      where: and(
+        eq(accounts.name, accountName),
+        eq(accounts.currency, currency)
+      )
+    });
+    
+    if (existingAccount) {
+      return existingAccount;
+    }
+    
+    // Create new investment revenue account
+    const [newAccount] = await db.insert(accounts).values({
+      name: accountName,
+      type: 'other',
+      currency: currency,
+      openingBalance: '0',
+      currentBalance: '0',
+      status: 'active',
+      paymentMethodKey: null,
+      color: '#2196F3', // Blue for investment revenue
+      createdBy: 'system'
+    }).returning();
+    
+    return newAccount;
   }
 }

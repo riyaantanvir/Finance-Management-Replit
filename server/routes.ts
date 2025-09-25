@@ -17,7 +17,13 @@ import {
   insertSettingsFinanceSchema,
   updateSettingsFinanceSchema,
   insertExchangeRateSchema,
-  updateExchangeRateSchema
+  updateExchangeRateSchema,
+  insertInvProjectSchema,
+  updateInvProjectSchema,
+  insertInvCategorySchema,
+  insertInvTxSchema,
+  updateInvTxSchema,
+  insertInvPayoutSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -709,6 +715,336 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(exchangeRate);
     } catch (error) {
       res.status(500).json({ message: "Failed to upsert exchange rate" });
+    }
+  });
+
+  // Investment Project routes
+  app.get("/api/inv-projects", async (req, res) => {
+    try {
+      const projects = await storage.getAllInvProjects();
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment projects" });
+    }
+  });
+
+  app.get("/api/inv-projects/active", async (req, res) => {
+    try {
+      const projects = await storage.getActiveInvProjects();
+      res.json(projects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active investment projects" });
+    }
+  });
+
+  app.get("/api/inv-projects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getInvProject(id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Investment project not found" });
+      }
+      
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment project" });
+    }
+  });
+
+  app.post("/api/inv-projects", async (req, res) => {
+    try {
+      const projectData = insertInvProjectSchema.parse(req.body);
+      const project = await storage.createInvProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create investment project" });
+      }
+    }
+  });
+
+  app.put("/api/inv-projects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const projectData = updateInvProjectSchema.parse(req.body);
+      
+      const project = await storage.updateInvProject(id, projectData);
+      if (!project) {
+        return res.status(404).json({ message: "Investment project not found" });
+      }
+
+      res.json(project);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update investment project" });
+      }
+    }
+  });
+
+  app.delete("/api/inv-projects/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteInvProject(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Investment project not found" });
+      }
+
+      res.json({ message: "Investment project deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete investment project" });
+    }
+  });
+
+  // Investment Category routes
+  app.get("/api/inv-categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllInvCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment categories" });
+    }
+  });
+
+  app.get("/api/inv-categories/project/:projectId", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const categories = await storage.getInvCategoriesByProject(projectId);
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project categories" });
+    }
+  });
+
+  app.post("/api/inv-categories", async (req, res) => {
+    try {
+      const categoryData = insertInvCategorySchema.parse(req.body);
+      
+      // Validate that the project exists
+      const project = await storage.getInvProject(categoryData.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const category = await storage.createInvCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create investment category" });
+      }
+    }
+  });
+
+  app.delete("/api/inv-categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteInvCategory(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Investment category not found" });
+      }
+
+      res.json({ message: "Investment category deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete investment category" });
+    }
+  });
+
+  // Investment Transaction routes
+  app.get("/api/inv-tx", async (req, res) => {
+    try {
+      const { projectId, categoryId, direction, accountId, startDate, endDate } = req.query;
+      
+      const filters = {
+        projectId: projectId as string,
+        categoryId: categoryId as string,
+        direction: direction as string,
+        accountId: accountId as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+      };
+
+      // Remove undefined filters
+      Object.keys(filters).forEach(key => {
+        if (!filters[key as keyof typeof filters]) {
+          delete filters[key as keyof typeof filters];
+        }
+      });
+
+      const transactions = Object.keys(filters).length > 0 
+        ? await storage.getFilteredInvTx(filters)
+        : await storage.getAllInvTx();
+        
+      res.json(transactions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment transactions" });
+    }
+  });
+
+  app.get("/api/inv-tx/project/:projectId", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const transactions = await storage.getInvTxByProject(projectId);
+      res.json(transactions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project transactions" });
+    }
+  });
+
+  app.get("/api/inv-tx/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const transaction = await storage.getInvTx(id);
+      
+      if (!transaction) {
+        return res.status(404).json({ message: "Investment transaction not found" });
+      }
+      
+      res.json(transaction);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment transaction" });
+    }
+  });
+
+  app.post("/api/inv-tx", async (req, res) => {
+    try {
+      const txData = insertInvTxSchema.parse(req.body);
+      
+      // Validate that the project exists
+      const project = await storage.getInvProject(txData.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Validate that the category exists
+      const category = await storage.getInvCategory(txData.categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+
+      // Validate that the account exists
+      const account = await storage.getAccount(txData.accountId);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      const transaction = await storage.createInvTx(txData);
+      res.status(201).json(transaction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Investment transaction creation error:', error);
+        res.status(500).json({ message: "Failed to create investment transaction" });
+      }
+    }
+  });
+
+  app.put("/api/inv-tx/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const txData = updateInvTxSchema.parse(req.body);
+      
+      const transaction = await storage.updateInvTx(id, txData);
+      if (!transaction) {
+        return res.status(404).json({ message: "Investment transaction not found" });
+      }
+
+      res.json(transaction);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Investment transaction update error:', error);
+        res.status(500).json({ message: "Failed to update investment transaction" });
+      }
+    }
+  });
+
+  app.delete("/api/inv-tx/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteInvTx(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Investment transaction not found" });
+      }
+
+      res.json({ message: "Investment transaction deleted successfully" });
+    } catch (error) {
+      console.error('Investment transaction deletion error:', error);
+      res.status(500).json({ message: "Failed to delete investment transaction" });
+    }
+  });
+
+  // Investment Payout routes
+  app.get("/api/inv-payouts", async (req, res) => {
+    try {
+      const payouts = await storage.getAllInvPayouts();
+      res.json(payouts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch investment payouts" });
+    }
+  });
+
+  app.get("/api/inv-payouts/project/:projectId", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const payouts = await storage.getInvPayoutsByProject(projectId);
+      res.json(payouts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project payouts" });
+    }
+  });
+
+  app.post("/api/inv-payouts", async (req, res) => {
+    try {
+      const payoutData = insertInvPayoutSchema.parse(req.body);
+      
+      // Validate that the project exists
+      const project = await storage.getInvProject(payoutData.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Validate that the account exists
+      const account = await storage.getAccount(payoutData.toAccountId);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      const payout = await storage.createInvPayout(payoutData);
+      res.status(201).json(payout);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Investment payout creation error:', error);
+        res.status(500).json({ message: "Failed to create investment payout" });
+      }
+    }
+  });
+
+  app.delete("/api/inv-payouts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteInvPayout(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Investment payout not found" });
+      }
+
+      res.json({ message: "Investment payout deleted successfully" });
+    } catch (error) {
+      console.error('Investment payout deletion error:', error);
+      res.status(500).json({ message: "Failed to delete investment payout" });
     }
   });
 

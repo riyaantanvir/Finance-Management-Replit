@@ -23,7 +23,17 @@ import {
   type UpdateSettingsFinance,
   type ExchangeRate,
   type InsertExchangeRate,
-  type UpdateExchangeRate
+  type UpdateExchangeRate,
+  type InvProject,
+  type InsertInvProject,
+  type UpdateInvProject,
+  type InvCategory,
+  type InsertInvCategory,
+  type InvTx,
+  type InsertInvTx,
+  type UpdateInvTx,
+  type InvPayout,
+  type InsertInvPayout
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -100,6 +110,48 @@ export interface IStorage {
   getFinanceSettings(): Promise<SettingsFinance | undefined>;
   createFinanceSettings(settings: InsertSettingsFinance): Promise<SettingsFinance>;
   updateFinanceSettings(settings: UpdateSettingsFinance): Promise<SettingsFinance>;
+  
+  // Account relationship checks
+  hasLedgerEntries(accountId: string): Promise<boolean>;
+  hasAccountTransfers(accountId: string): Promise<boolean>;
+
+  // Investment Project methods
+  getInvProject(id: string): Promise<InvProject | undefined>;
+  createInvProject(project: InsertInvProject): Promise<InvProject>;
+  updateInvProject(id: string, project: UpdateInvProject): Promise<InvProject | undefined>;
+  deleteInvProject(id: string): Promise<boolean>;
+  getAllInvProjects(): Promise<InvProject[]>;
+  getActiveInvProjects(): Promise<InvProject[]>;
+
+  // Investment Category methods
+  getInvCategory(id: string): Promise<InvCategory | undefined>;
+  createInvCategory(category: InsertInvCategory): Promise<InvCategory>;
+  deleteInvCategory(id: string): Promise<boolean>;
+  getInvCategoriesByProject(projectId: string): Promise<InvCategory[]>;
+  getAllInvCategories(): Promise<InvCategory[]>;
+
+  // Investment Transaction methods
+  getInvTx(id: string): Promise<InvTx | undefined>;
+  createInvTx(tx: InsertInvTx): Promise<InvTx>;
+  updateInvTx(id: string, tx: UpdateInvTx): Promise<InvTx | undefined>;
+  deleteInvTx(id: string): Promise<boolean>;
+  getAllInvTx(): Promise<InvTx[]>;
+  getInvTxByProject(projectId: string): Promise<InvTx[]>;
+  getFilteredInvTx(filters: {
+    projectId?: string;
+    categoryId?: string;
+    direction?: string;
+    accountId?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<InvTx[]>;
+
+  // Investment Payout methods
+  getInvPayout(id: string): Promise<InvPayout | undefined>;
+  createInvPayout(payout: InsertInvPayout): Promise<InvPayout>;
+  deleteInvPayout(id: string): Promise<boolean>;
+  getAllInvPayouts(): Promise<InvPayout[]>;
+  getInvPayoutsByProject(projectId: string): Promise<InvPayout[]>;
 }
 
 export class MemStorage {

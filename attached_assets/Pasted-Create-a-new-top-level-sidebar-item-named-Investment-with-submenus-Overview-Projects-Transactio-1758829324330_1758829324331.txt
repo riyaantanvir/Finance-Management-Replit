@@ -1,0 +1,95 @@
+Create a new top-level sidebar item named "Investment" with submenus:
+Overview, Projects, Transactions, Payouts, Reports, Settings.
+
+DATA MODELS
+1) inv_projects
+   - id (uuid), name (string, required, unique per user)
+   - type enum["gher","capital","other"] default "other"
+   - start_date (date), status enum["active","closed"] default "active"
+   - currency ISO code (default from finance settings), notes text nullable
+   - created_by, created_at, updated_at
+
+2) inv_categories
+   - id (uuid), project_id (fk inv_projects.id)
+   - name (string), kind enum["cost","income"]
+   - unique (project_id, name)
+
+3) inv_tx (investment transactions)
+   - id (uuid), project_id (fk), category_id (fk)
+   - date, amount decimal(18,2), direction enum["income","cost"]
+   - account_id (fk accounts.id)  // from Funds module
+   - currency ISO, fx_rate decimal(18,6)=1, amount_base decimal(18,2)
+   - note text nullable, created_by, created_at
+   - On create/update/delete, also write to the global `ledger` table:
+        ref_type="investment_tx", ref_id=inv_tx.id
+        tx_type = (direction=="cost" ? "expense" : "income")
+        amount signed (- for cost, + for income), account_id, currency, fx_rate.
+
+4) inv_payouts (optional profit withdrawals)
+   - id (uuid), project_id, date, amount, to_account_id, currency, fx_rate, note
+   - On submit: ledger row for to_account_id with tx_type="deposit" (amount +)
+     and an opposing "withdrawal" from a special virtual project account or simply
+     additional inv_tx of kind "cost" category "Payout" (choose simple approach: create inv_tx cost).
+
+SEED CATEGORIES
+- When a project of type "gher" is created, auto-create categories:
+  COST: ["Lease/Gher neowa","Kakar beton","Mach chara","Feed","Maintenance","Others"]
+  INCOME: ["Fish sale"]
+- When a project of type "capital" is created:
+  INCOME: ["Return"]
+  COST: ["Fee","Adjustment"]
+
+UI/UX
+A) Overview (Investment Dashboard)
+- KPI cards at top: Total Invested (sum cost), Total Income, Net Profit, ROI% (Net/Invested),
+  Monthly Inflow (last 30 days income).
+- Project cards grid: [Project Name, Status badge, Invested, Income, Net, ROI%].
+  Each card has "Quick Add Tx" (opens modal with Project preselected).
+
+B) Projects page
+- Table columns: [Name | Type | Status | Start | Invested | Income | Net | Actions(View/Edit/Close)]
+- "Add Project" modal: Name, Type (gher/capital/other), Start date, Currency.
+- Project Detail with tabs:
+   1) Summary: left = KPIs (Invested/Income/Net/ROI), right = quick chart (30d inflow).
+   2) Transactions: filter by Category/Date/Account; table [Date | Category | Direction | Account | Amount | Note | Actions(Edit/Delete)]
+      + Quick Add row: Date, Category (from project), Amount, Direction auto by category kind,
+        Account (dropdown from Funds active accounts), Note -> Save.
+   3) Payouts: list + "Add Payout" (creates an inv_tx cost "Payout" OR dual-ledger as described).
+   4) Settings: Category Manager (add/edit/delete), Close Project toggle (locks new tx).
+
+C) Transactions (global)
+- Filters: Project, Category, Direction, Account, Date range. Export CSV.
+
+D) Reports
+- "Project P&L": select project + date range -> show Invested vs Income, Net, ROI%, download PDF.
+- "Capital Fund Monthly": show month-wise inflow (sum income where project.type="capital").
+
+E) Settings
+- Choose default currency (inherit from finance settings), default account for quick-add.
+
+VALIDATION & LOGIC
+- Prevent negative/zero amount on tx.
+- Edit/Delete inv_tx must reverse the previous ledger entry and then write the new one (idempotent; use ref_type/ref_id).
+- Closing a project blocks new transactions (show toast).
+- All amounts saved with currency + fx_rate; compute amount_base.
+
+PERMISSIONS
+- admin: full; manager: create/edit tx & projects; user: view only.
+
+MIGRATION/SEED
+- Create one sample project each if none exists:
+   * "Gher (Fish Farm)" type="gher"
+   * "Capital Fund" type="capital"
+  and auto-seed categories as above.
+
+TESTS/SCENARIOS
+- Add "Mach chara" cost 20,000 BDT from Cash -> Cash ledger decreases, project Invested increases.
+- Add fish sale income 35,000 BDT to bKash -> ledger increases; project Income increases; ROI updates.
+- Add Capital Fund return 12,500 (USD with fx_rate) -> base totals reflect conversion.
+- Edit a tx -> previous ledger reversed; balances correct.
+- Close project -> trying to add tx shows error.
+
+POLISH
+- Use same card style as dashboard; red for negative Net; currency symbols consistent.
+- Date pickers default today; quick filters: This Month / Last Month / Custom.
+- All tables support Export CSV.
