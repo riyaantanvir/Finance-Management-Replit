@@ -29,6 +29,7 @@ export const paymentMethods = pgTable("payment_methods", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   description: text("description"),
+  currency: text("currency").notNull().default("BDT"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -89,6 +90,14 @@ export const transfers = pgTable("transfers", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const exchangeRates = pgTable("exchange_rates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromCurrency: text("from_currency").notNull(),
+  toCurrency: text("to_currency").notNull(),
+  rate: decimal("rate", { precision: 18, scale: 6 }).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const settingsFinance = pgTable("settings_finance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   baseCurrency: text("base_currency").notNull().default("BDT"),
@@ -135,6 +144,11 @@ export const insertTransferSchema = createInsertSchema(transfers).omit({
   createdAt: true,
 });
 
+export const insertExchangeRateSchema = createInsertSchema(exchangeRates).omit({
+  id: true,
+  updatedAt: true,
+});
+
 export const insertSettingsFinanceSchema = createInsertSchema(settingsFinance).omit({
   id: true,
   updatedAt: true,
@@ -144,6 +158,7 @@ export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
 export const updateAccountSchema = insertAccountSchema.partial();
+export const updateExchangeRateSchema = insertExchangeRateSchema.partial();
 export const updateSettingsFinanceSchema = insertSettingsFinanceSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
@@ -171,6 +186,9 @@ export type InsertLedger = z.infer<typeof insertLedgerSchema>;
 export type Ledger = typeof ledger.$inferSelect;
 export type InsertTransfer = z.infer<typeof insertTransferSchema>;
 export type Transfer = typeof transfers.$inferSelect;
+export type InsertExchangeRate = z.infer<typeof insertExchangeRateSchema>;
+export type ExchangeRate = typeof exchangeRates.$inferSelect;
+export type UpdateExchangeRate = z.infer<typeof updateExchangeRateSchema>;
 export type InsertSettingsFinance = z.infer<typeof insertSettingsFinanceSchema>;
 export type SettingsFinance = typeof settingsFinance.$inferSelect;
 export type UpdateSettingsFinance = z.infer<typeof updateSettingsFinanceSchema>;
