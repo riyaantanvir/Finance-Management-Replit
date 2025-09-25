@@ -26,15 +26,15 @@ export default function InvestmentTransactions() {
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery<InvTx[]>({
-    queryKey: ["/api/investments/transactions"],
+    queryKey: ["/api/inv-tx"],
   });
 
   const { data: projects = [] } = useQuery<InvProject[]>({
-    queryKey: ["/api/investments/projects"],
+    queryKey: ["/api/inv-projects"],
   });
 
   const { data: categories = [] } = useQuery<InvCategory[]>({
-    queryKey: ["/api/investments/categories"],
+    queryKey: ["/api/inv-categories"],
   });
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -57,12 +57,12 @@ export default function InvestmentTransactions() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInvTx) => apiRequest('POST', '/api/investments/transactions', data),
+    mutationFn: (data: InsertInvTx) => apiRequest('POST', '/api/inv-tx', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Transaction created successfully" });
       setIsCreateModalOpen(false);
       createForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-tx"] });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to create transaction", variant: "destructive" });

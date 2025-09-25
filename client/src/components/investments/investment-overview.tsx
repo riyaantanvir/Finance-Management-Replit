@@ -15,15 +15,15 @@ export default function InvestmentOverview() {
 
   // Fetch all investment data
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery<InvProject[]>({
-    queryKey: ["/api/investments/projects"],
+    queryKey: ["/api/inv-projects"],
   });
 
   const { data: transactions = [], isLoading: transactionsLoading, refetch: refetchTransactions } = useQuery<InvTx[]>({
-    queryKey: ["/api/investments/transactions"],
+    queryKey: ["/api/inv-tx"],
   });
 
   const { data: payouts = [], isLoading: payoutsLoading, refetch: refetchPayouts } = useQuery<InvPayout[]>({
-    queryKey: ["/api/investments/payouts"],
+    queryKey: ["/api/inv-payouts"],
   });
 
   const { data: accounts = [] } = useQuery<Account[]>({

@@ -25,11 +25,11 @@ export default function InvestmentPayouts() {
   const queryClient = useQueryClient();
 
   const { data: payouts = [], isLoading } = useQuery<InvPayout[]>({
-    queryKey: ["/api/investments/payouts"],
+    queryKey: ["/api/inv-payouts"],
   });
 
   const { data: projects = [] } = useQuery<InvProject[]>({
-    queryKey: ["/api/investments/projects"],
+    queryKey: ["/api/inv-projects"],
   });
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -51,12 +51,12 @@ export default function InvestmentPayouts() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: InsertInvPayout) => apiRequest('POST', '/api/investments/payouts', data),
+    mutationFn: (data: InsertInvPayout) => apiRequest('POST', '/api/inv-payouts', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Payout created successfully" });
       setIsCreateModalOpen(false);
       createForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/payouts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-payouts"] });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to create payout", variant: "destructive" });

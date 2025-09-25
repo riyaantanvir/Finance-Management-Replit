@@ -38,21 +38,21 @@ export default function InvestmentProjects() {
 
   // Fetch data
   const { data: projects = [], isLoading: projectsLoading, refetch: refetchProjects } = useQuery<InvProject[]>({
-    queryKey: ["/api/investments/projects"],
+    queryKey: ["/api/inv-projects"],
     staleTime: 0,
     refetchOnMount: 'always',
   });
 
   const { data: transactions = [] } = useQuery<InvTx[]>({
-    queryKey: ["/api/investments/transactions"],
+    queryKey: ["/api/inv-tx"],
   });
 
   const { data: payouts = [] } = useQuery<InvPayout[]>({
-    queryKey: ["/api/investments/payouts"],
+    queryKey: ["/api/inv-payouts"],
   });
 
   const { data: categories = [] } = useQuery<InvCategory[]>({
-    queryKey: ["/api/investments/categories"],
+    queryKey: ["/api/inv-categories"],
   });
 
   const { data: accounts = [] } = useQuery<Account[]>({
@@ -113,12 +113,12 @@ export default function InvestmentProjects() {
 
   // Create project mutation
   const createProjectMutation = useMutation({
-    mutationFn: (data: InsertInvProject) => apiRequest('POST', '/api/investments/projects', data),
+    mutationFn: (data: InsertInvProject) => apiRequest('POST', '/api/inv-projects', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Project created successfully" });
       setIsCreateModalOpen(false);
       createForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-projects"] });
       refetchProjects();
     },
     onError: (error: any) => {
@@ -133,12 +133,12 @@ export default function InvestmentProjects() {
   // Update project mutation
   const updateProjectMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InsertInvProject }) => 
-      apiRequest('PUT', `/api/investments/projects/${id}`, data),
+      apiRequest('PUT', `/api/inv-projects/${id}`, data),
     onSuccess: () => {
       toast({ title: "Success", description: "Project updated successfully" });
       setEditingProject(null);
       editForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-projects"] });
     },
     onError: (error: any) => {
       toast({ 

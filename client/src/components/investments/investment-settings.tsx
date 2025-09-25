@@ -24,7 +24,7 @@ export default function InvestmentSettings() {
   const queryClient = useQueryClient();
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<InvCategory[]>({
-    queryKey: ["/api/investments/categories"],
+    queryKey: ["/api/inv-categories"],
   });
 
   const { data: financeSettings } = useQuery<SettingsFinance>({
@@ -45,12 +45,12 @@ export default function InvestmentSettings() {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: InsertInvCategory) => apiRequest('POST', '/api/investments/categories', data),
+    mutationFn: (data: InsertInvCategory) => apiRequest('POST', '/api/inv-categories', data),
     onSuccess: () => {
       toast({ title: "Success", description: "Category created successfully" });
       setIsCreateCategoryModalOpen(false);
       createCategoryForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-categories"] });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to create category", variant: "destructive" });
@@ -59,12 +59,12 @@ export default function InvestmentSettings() {
 
   const updateCategoryMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: InsertInvCategory }) => 
-      apiRequest('PUT', `/api/investments/categories/${id}`, data),
+      apiRequest('PUT', `/api/inv-categories/${id}`, data),
     onSuccess: () => {
       toast({ title: "Success", description: "Category updated successfully" });
       setEditingCategory(null);
       editCategoryForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-categories"] });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to update category", variant: "destructive" });
@@ -72,10 +72,10 @@ export default function InvestmentSettings() {
   });
 
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => apiRequest('DELETE', `/api/investments/categories/${id}`, undefined),
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/inv-categories/${id}`, undefined),
     onSuccess: () => {
       toast({ title: "Success", description: "Category deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/investments/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-categories"] });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to delete category", variant: "destructive" });
