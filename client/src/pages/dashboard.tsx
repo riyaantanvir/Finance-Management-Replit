@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter } from "lucide-react";
 import { Expense } from "@shared/schema";
 import ExpenseFilters from "@/components/expense/expense-filters";
@@ -23,6 +24,8 @@ export default function Dashboard() {
   });
 
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
 
   // Build query params based on filters
   const queryParams = useMemo(() => {
@@ -65,6 +68,14 @@ export default function Dashboard() {
     },
     enabled: true,
   });
+
+  // Get expenses for selected tag within current filter range
+  const selectedTagExpenses = useMemo(() => {
+    if (!selectedTag) return [];
+    return filteredExpenses.filter(expense => 
+      expense.type === 'expense' && expense.tag === selectedTag
+    ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredExpenses, selectedTag]);
 
   // Calculate stats from filtered expenses
   const stats = useMemo(() => {
@@ -294,11 +305,16 @@ export default function Dashboard() {
                 const percentage = stats.totalExpenses > 0 ? ((amount / stats.totalExpenses) * 100) : 0;
                 
                 return (
-                  <div
-                    key={tag}
-                    className="p-4 border rounded-lg hover:shadow-md transition-shadow"
-                    data-testid={`tag-breakdown-${tag}`}
-                  >
+                  <Dialog key={tag}>
+                    <DialogTrigger asChild>
+                      <div
+                        className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer hover:scale-105"
+                        data-testid={`tag-breakdown-${tag}`}
+                        onClick={() => {
+                          setSelectedTag(tag);
+                          setTagModalOpen(true);
+                        }}
+                      >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
                         <div className={`w-3 h-3 rounded-full ${getTransactionBgColor('expense', tag)}`}></div>
@@ -321,8 +337,70 @@ export default function Dashboard() {
                           data-testid={`progress-tag-${tag}`}
                         ></div>
                       </div>
+                      </div>
                     </div>
-                  </div>
+                    </DialogTrigger>
+                    
+                    {/* Tag Expense Modal */}
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center space-x-3">
+                          <div className={`w-8 h-8 ${getTransactionBgColor('expense', tag)} rounded-full flex items-center justify-center`}>
+                            {getTransactionIcon('expense', tag)}
+                          </div>
+                          <div>
+                            <h2 className="text-xl font-bold capitalize">{tag} Expenses</h2>
+                            <p className="text-sm text-muted-foreground">
+                              Total: {formatCurrency(amount)} ({percentage.toFixed(1)}% of expenses)
+                            </p>
+                          </div>
+                        </DialogTitle>
+                      </DialogHeader>
+                      
+                      <div className="mt-4 overflow-y-auto">
+                        <h3 className="text-lg font-semibold mb-4">All {tag} transactions in current filter range</h3>
+                        {selectedTag === tag ? (
+                          selectedTagExpenses.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8">
+                              No {tag} transactions found in current filter range
+                            </p>
+                          ) : (
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                              {selectedTagExpenses.map((expense) => (
+                                <div
+                                  key={expense.id}
+                                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+                                  data-testid={`modal-expense-${expense.id}`}
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`w-10 h-10 ${getTransactionBgColor(expense.type, expense.tag)} rounded-full flex items-center justify-center`}>
+                                      {getTransactionIcon(expense.type, expense.tag)}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium" data-testid={`modal-expense-details-${expense.id}`}>
+                                        {expense.details}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground" data-testid={`modal-expense-date-${expense.id}`}>
+                                        {new Date(expense.date).toLocaleDateString()} • {expense.paymentMethod}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-bold text-lg text-red-600" data-testid={`modal-expense-amount-${expense.id}`}>
+                                      -{formatCurrency(parseFloat(expense.amount))}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground capitalize">
+                                      {expense.tag}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 );
               })}
             </div>
