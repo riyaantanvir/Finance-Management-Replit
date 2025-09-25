@@ -50,12 +50,14 @@ export default function InvestmentTransactions() {
     resolver: zodResolver(insertInvTxSchema),
     defaultValues: {
       projectId: "",
+      categoryId: "", 
       date: new Date().toISOString().split('T')[0],
       direction: "cost",
       currency: financeSettings?.baseCurrency || "BDT",
       fxRate: "1",
       accountId: "",
       amount: "",
+      amountBase: "",
       note: "",
     },
   });
@@ -94,7 +96,21 @@ export default function InvestmentTransactions() {
   };
 
   const onCreateTransaction = (data: InsertInvTx) => {
-    createMutation.mutate(data);
+    console.log("Form submitted with data:", data);
+    console.log("Form errors:", createForm.formState.errors);
+    
+    // Calculate amountBase for currency conversion
+    const amount = parseFloat(data.amount);
+    const fxRate = parseFloat(data.fxRate);
+    const amountBase = (amount * fxRate).toString();
+    
+    const submissionData = {
+      ...data,
+      amountBase
+    };
+    
+    console.log("Final submission data:", submissionData);
+    createMutation.mutate(submissionData);
   };
 
   return (
@@ -161,6 +177,29 @@ export default function InvestmentTransactions() {
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={createForm.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map(category => (
+                            <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
