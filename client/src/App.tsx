@@ -10,6 +10,11 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import ExpenseEntry from "@/pages/expense-entry";
 import AdminPanel from "@/pages/admin-panel";
+import FundsOverviewPage from "@/pages/funds-overview";
+import FundsAccountsPage from "@/pages/funds-accounts";
+import FundsTransfersPage from "@/pages/funds-transfers";
+import FundsReconcilePage from "@/pages/funds-reconcile";
+import FundsSettingsPage from "@/pages/funds-settings";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -43,6 +48,11 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/expense-entry" component={ExpenseEntry} />
             <Route path="/admin-panel" component={AdminPanel} />
+            <Route path="/funds/overview" component={FundsOverviewPage} />
+            <Route path="/funds/accounts" component={FundsAccountsPage} />
+            <Route path="/funds/transfers" component={FundsTransfersPage} />
+            <Route path="/funds/reconcile" component={FundsReconcilePage} />
+            <Route path="/funds/settings" component={FundsSettingsPage} />
           </Switch>
         </main>
       </div>

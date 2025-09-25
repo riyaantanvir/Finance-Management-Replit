@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BarChart, Plus, Users, X } from "lucide-react";
+import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,11 +12,27 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   const [location] = useLocation();
+  const [fundsExpanded, setFundsExpanded] = useState(location.startsWith("/funds"));
+
+  // Keep funds expanded state synced with route changes
+  useEffect(() => {
+    if (location.startsWith("/funds")) {
+      setFundsExpanded(true);
+    }
+  }, [location]);
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart },
     { name: "Expense Entry", href: "/expense-entry", icon: Plus },
     { name: "Admin Panel", href: "/admin-panel", icon: Users },
+  ];
+
+  const fundsNavigation = [
+    { name: "Overview", href: "/funds/overview" },
+    { name: "Accounts", href: "/funds/accounts" },
+    { name: "Transfers", href: "/funds/transfers" },
+    { name: "Reconcile", href: "/funds/reconcile" },
+    { name: "Settings", href: "/funds/settings" },
   ];
 
   const handleLinkClick = () => {
@@ -78,6 +95,57 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Fund Management Section */}
+        <div className="mt-4">
+          <button
+            onClick={() => setFundsExpanded(!fundsExpanded)}
+            className={cn(
+              "flex items-center justify-between w-full px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
+              location.startsWith("/funds")
+                ? "text-primary bg-accent border-l-4 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+            data-testid="button-funds-menu"
+          >
+            <div className="flex items-center">
+              <Wallet className="h-5 w-5 min-w-[1.25rem]" />
+              {(isOpen || isMobile) && <span className="ml-3 truncate">Fund Management</span>}
+            </div>
+            {(isOpen || isMobile) && (
+              fundsExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )
+            )}
+          </button>
+
+          {/* Fund Management Submenu */}
+          {fundsExpanded && (isOpen || isMobile) && (
+            <div className="ml-8 mt-2 space-y-1">
+              {fundsNavigation.map((item) => {
+                const isActive = location === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm transition-colors rounded-lg",
+                      isActive
+                        ? "text-primary bg-accent/50 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    )}
+                    data-testid={`link-funds-${item.name.toLowerCase()}`}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </nav>
     </div>
   );
