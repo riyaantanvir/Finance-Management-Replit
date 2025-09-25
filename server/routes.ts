@@ -444,6 +444,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/accounts/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Check if account has related records
+      const hasLedgerEntries = await storage.hasLedgerEntries(id);
+      const hasTransfers = await storage.hasAccountTransfers(id);
+      
+      if (hasLedgerEntries || hasTransfers) {
+        return res.status(400).json({ 
+          message: "Cannot delete account with existing transactions. Please delete all related transactions first." 
+        });
+      }
+      
       const deleted = await storage.deleteAccount(id);
       
       if (!deleted) {
@@ -452,7 +463,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ message: "Account deleted successfully" });
     } catch (error) {
-      res.status(500).json({ message: "Failed to delete account" });
+      console.error('Account deletion error:', error);
+      res.status(500).json({ 
+        message: "Failed to delete account", 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 

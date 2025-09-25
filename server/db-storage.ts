@@ -1,4 +1,4 @@
-import { eq, desc, and, or, gte, lte, sum } from 'drizzle-orm';
+import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
 import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates } from '@shared/schema';
 import { 
@@ -383,6 +383,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(accounts.id, id))
       .returning();
     return result;
+  }
+
+  async hasLedgerEntries(accountId: string): Promise<boolean> {
+    const count = await db.select({ count: sql<number>`count(*)` })
+      .from(ledger)
+      .where(eq(ledger.accountId, accountId));
+    return count[0]?.count > 0;
+  }
+
+  async hasAccountTransfers(accountId: string): Promise<boolean> {
+    const count = await db.select({ count: sql<number>`count(*)` })
+      .from(transfers)
+      .where(or(
+        eq(transfers.fromAccountId, accountId),
+        eq(transfers.toAccountId, accountId)
+      ));
+    return count[0]?.count > 0;
   }
 
   async deleteAccount(id: string): Promise<boolean> {
