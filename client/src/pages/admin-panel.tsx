@@ -4,6 +4,7 @@ import UserForm from "@/components/admin/user-form";
 import UserTable from "@/components/admin/user-table";
 import { TagsManagement } from '@/components/admin/tags-management';
 import { PaymentMethodsManagement } from '@/components/admin/payment-methods-management';
+import { ExchangeRatesManagement } from '@/components/admin/exchange-rates-management';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Tags, CreditCard } from 'lucide-react';
@@ -21,7 +22,7 @@ export default function AdminPanel() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, tags, and payment methods</p>
+          <p className="text-muted-foreground">Manage users, tags, payment methods, and exchange rates</p>
         </div>
       </div>
 
@@ -52,6 +53,7 @@ export default function AdminPanel() {
 
         <TabsContent value="payment-methods" className="space-y-6">
           <PaymentMethodsManagement />
+          <ExchangeRatesManagement />
         </TabsContent>
       </Tabs>
     </div>
