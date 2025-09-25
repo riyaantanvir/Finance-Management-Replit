@@ -1,21 +1,32 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRightLeft, Wallet, TrendingUp, Eye, EyeOff } from "lucide-react";
+import { ArrowRightLeft, Wallet, TrendingUp, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Account, Transfer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export default function FundOverview() {
   const [showBalances, setShowBalances] = useState(true);
+  const queryClient = useQueryClient();
 
-  const { data: accounts = [], isLoading: accountsLoading } = useQuery<Account[]>({
+  const { data: accounts = [], isLoading: accountsLoading, refetch: refetchAccounts } = useQuery<Account[]>({
     queryKey: ["/api/accounts"],
   });
 
-  const { data: transfers = [], isLoading: transfersLoading } = useQuery<Transfer[]>({
+  const { data: transfers = [], isLoading: transfersLoading, refetch: refetchTransfers } = useQuery<Transfer[]>({
     queryKey: ["/api/transfers"],
   });
+
+  // Refresh function to pull current data
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchAccounts(),
+      refetchTransfers(),
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/transfers"] })
+    ]);
+  };
 
   // Calculate overview stats
   const stats = useMemo(() => {
@@ -37,6 +48,24 @@ export default function FundOverview() {
   }, [accounts, transfers]);
 
   const formatCurrency = (amount: number) => `৳ ${amount.toLocaleString()}`;
+
+  // Color mapping for different account types
+  const getAccountColor = (type: string, index: number) => {
+    const colors = [
+      'bg-cyan-500', 'bg-purple-500', 'bg-amber-500', 
+      'bg-slate-500', 'bg-red-500', 'bg-green-500',
+      'bg-blue-500', 'bg-pink-500', 'bg-indigo-500'
+    ];
+    const typeColors = {
+      cash: 'bg-cyan-500',
+      mobile_wallet: 'bg-purple-500', 
+      bank_account: 'bg-slate-500',
+      card: 'bg-amber-500',
+      crypto: 'bg-red-500',
+      other: 'bg-gray-500'
+    };
+    return typeColors[type as keyof typeof typeColors] || colors[index % colors.length];
+  };
 
   if (accountsLoading || transfersLoading) {
     return (
@@ -68,6 +97,15 @@ export default function FundOverview() {
           <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
             {stats.totalAccounts} active {stats.totalAccounts === 1 ? 'account' : 'accounts'}
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={accountsLoading || transfersLoading}
+            data-testid="button-refresh-data"
+          >
+            <RefreshCw className={`h-4 w-4 ${(accountsLoading || transfersLoading) ? 'animate-spin' : ''}`} />
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -138,57 +176,49 @@ export default function FundOverview() {
         </Card>
       </div>
 
-      {/* Accounts Summary */}
+      {/* Current Account Balances */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Account Balances</span>
+            <span>Current Account Balances</span>
             <span className="text-sm font-normal text-muted-foreground">
-              {accounts.length} {accounts.length === 1 ? 'account' : 'accounts'}
+              {accounts.filter(acc => acc.status === 'active').length} active
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {accounts.length === 0 ? (
+          {accounts.filter(acc => acc.status === 'active').length === 0 ? (
             <p className="text-center text-muted-foreground py-8" data-testid="text-no-accounts">
-              No accounts found
+              No active accounts found
             </p>
           ) : (
-            <div className="space-y-3">
-              {accounts.map((account) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {accounts
+                .filter(acc => acc.status === 'active')
+                .map((account, index) => (
                 <div
                   key={account.id}
-                  className="flex items-center justify-between py-3 border-b border-border last:border-b-0"
-                  data-testid={`account-${account.id}`}
+                  className={`${getAccountColor(account.type, index)} text-white rounded-lg p-4 hover:shadow-lg transition-shadow`}
+                  data-testid={`account-card-${account.id}`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Wallet className="text-blue-600 text-xs" />
-                    </div>
-                    <div>
-                      <p className="font-medium" data-testid={`text-account-name-${account.id}`}>
-                        {account.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground" data-testid={`text-account-type-${account.id}`}>
-                        {account.type} • {account.status}
-                      </p>
-                    </div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Wallet className="h-5 w-5 text-white" />
+                    <span className="text-sm font-medium opacity-90">
+                      {account.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-primary" data-testid={`text-account-balance-${account.id}`}>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1" data-testid={`text-account-name-${account.id}`}>
+                      {account.name}
+                    </h3>
+                    <p className="text-xl font-bold" data-testid={`text-account-balance-${account.id}`}>
                       {showBalances ? formatCurrency(parseFloat(account.currentBalance)) : '••••••'}
                     </p>
-                    <Badge
-                      variant={account.status === 'active' ? 'default' : 'secondary'}
-                      className={
-                        account.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }
-                      data-testid={`badge-account-status-${account.id}`}
-                    >
-                      {account.status}
-                    </Badge>
+                    {account.paymentMethodKey && (
+                      <p className="text-sm opacity-75 mt-1" data-testid={`text-payment-method-${account.id}`}>
+                        {account.paymentMethodKey}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
