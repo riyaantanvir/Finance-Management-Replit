@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Filter, Edit, Eye, Activity, Target, TrendingUp, Calendar } from "lucide-react";
+import { Plus, Search, Filter, Edit, Eye, Activity, Target, TrendingUp, Calendar, Trash2 } from "lucide-react";
 import { InvProject, InvTx, InvPayout, InvCategory, Account, ExchangeRate, SettingsFinance } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -150,6 +150,25 @@ export default function InvestmentProjects() {
     },
   });
 
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: (id: string) => apiRequest('DELETE', `/api/inv-projects/${id}`, undefined),
+    onSuccess: () => {
+      toast({ title: "Success", description: "Project deleted successfully" });
+      setSelectedProject(null);
+      setEditingProject(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/inv-projects"] });
+      refetchProjects();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete project",
+        variant: "destructive"
+      });
+    },
+  });
+
   // Calculate project statistics
   const projectsWithStats = useMemo((): ProjectWithStats[] => {
     const baseCurrency = financeSettings?.baseCurrency || 'BDT';
@@ -235,6 +254,7 @@ export default function InvestmentProjects() {
       startDate: project.startDate,
       status: project.status,
       currency: project.currency,
+      initialAmount: project.initialAmount,
       notes: project.notes || "",
     });
   };
@@ -496,6 +516,20 @@ export default function InvestmentProjects() {
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Are you sure you want to delete "${project.name}"? This action cannot be undone.`)) {
+                        deleteProjectMutation.mutate(project.id);
+                      }
+                    }}
+                    data-testid={`button-delete-project-${project.id}`}
+                    disabled={deleteProjectMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="text-xs">
@@ -700,6 +734,20 @@ export default function InvestmentProjects() {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Project
                 </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    if (confirm(`Are you sure you want to delete "${selectedProject?.name}"? This action cannot be undone.`)) {
+                      deleteProjectMutation.mutate(selectedProject!.id);
+                    }
+                  }}
+                  disabled={deleteProjectMutation.isPending}
+                  data-testid={`button-delete-modal-${selectedProject?.id}`}
+                  className="border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {deleteProjectMutation.isPending ? "Deleting..." : "Delete Project"}
+                </Button>
                 <Button onClick={() => {
                   // Navigation to transactions page with project filter would go here
                   setSelectedProject(null);
@@ -820,6 +868,27 @@ export default function InvestmentProjects() {
                   )}
                 />
               </div>
+
+              <FormField
+                control={editForm.control}
+                name="initialAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Initial Investment Amount</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0"
+                        placeholder="0.00" 
+                        {...field} 
+                        data-testid="input-edit-initial-amount"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={editForm.control}
