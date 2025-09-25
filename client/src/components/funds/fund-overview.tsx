@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRightLeft, Wallet, TrendingUp, Eye, EyeOff, RefreshCw, X, ArrowUpRight, ArrowDownLeft, Plus, Minus, RotateCcw } from "lucide-react";
-import { Account, Transfer, Ledger } from "@shared/schema";
+import { Account, Transfer, Ledger, ExchangeRate, SettingsFinance } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,11 +20,50 @@ export default function FundOverview() {
     queryKey: ["/api/transfers"],
   });
 
+  // Fetch exchange rates for currency conversion
+  const { data: exchangeRates = [], isLoading: ratesLoading } = useQuery<ExchangeRate[]>({
+    queryKey: ["/api/exchange-rates"],
+  });
+
+  // Fetch finance settings for base currency
+  const { data: financeSettings } = useQuery<SettingsFinance>({
+    queryKey: ["/api/settings/finance"],
+    initialData: { id: '', baseCurrency: 'BDT', allowNegativeBalances: true, updatedAt: null }
+  });
+
   // Fetch ledger entries for selected account
   const { data: accountLedger = [], isLoading: ledgerLoading } = useQuery<Ledger[]>({
     queryKey: ["/api/ledger/account", selectedAccount?.id],
     enabled: !!selectedAccount,
   });
+
+  // Currency conversion function - returns null if no rate found
+  const convertToBaseCurrency = (amount: number, fromCurrency: string, baseCurrency: string): number | null => {
+    if (fromCurrency === baseCurrency) {
+      return amount;
+    }
+
+    // Find exchange rate from fromCurrency to baseCurrency
+    const rate = exchangeRates.find(r => 
+      r.fromCurrency === fromCurrency && r.toCurrency === baseCurrency
+    );
+
+    if (rate) {
+      return amount * parseFloat(rate.rate);
+    }
+
+    // If no direct rate found, try inverse rate
+    const inverseRate = exchangeRates.find(r => 
+      r.fromCurrency === baseCurrency && r.toCurrency === fromCurrency
+    );
+
+    if (inverseRate) {
+      return amount / parseFloat(inverseRate.rate);
+    }
+
+    // If no rate found, return null to indicate missing rate
+    return null;
+  };
 
   // Refresh function to pull current data
   const handleRefresh = async () => {
@@ -32,30 +71,81 @@ export default function FundOverview() {
       refetchAccounts(),
       refetchTransfers(),
       queryClient.invalidateQueries({ queryKey: ["/api/accounts"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/transfers"] })
+      queryClient.invalidateQueries({ queryKey: ["/api/transfers"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/exchange-rates"] })
     ]);
   };
 
-  // Calculate overview stats
+  // Calculate overview stats with currency conversion
   const stats = useMemo(() => {
     const activeAccounts = accounts.filter(acc => acc.status === 'active');
-    const totalBalance = activeAccounts.reduce((sum, acc) => sum + parseFloat(acc.currentBalance), 0);
+    const baseCurrency = financeSettings?.baseCurrency || 'BDT';
     
-    // This month transfers
+    // Track accounts with missing rates
+    let accountsWithMissingRates: string[] = [];
+    let transfersWithMissingRates: string[] = [];
+    
+    // Convert all account balances to base currency
+    const totalBalance = activeAccounts.reduce((sum, acc) => {
+      const accountBalance = parseFloat(acc.currentBalance);
+      const accountCurrency = acc.currency || 'BDT';
+      const convertedBalance = convertToBaseCurrency(accountBalance, accountCurrency, baseCurrency);
+      
+      if (convertedBalance === null) {
+        accountsWithMissingRates.push(`${acc.name} (${accountCurrency})`);
+        return sum; // Don't include accounts with missing rates in total
+      }
+      
+      return sum + convertedBalance;
+    }, 0);
+    
+    // This month transfers - convert to base currency
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const thisMonthTransfers = transfers.filter(t => t.createdAt && new Date(t.createdAt) >= startOfMonth);
-    const thisMonthAmount = thisMonthTransfers.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+    const thisMonthAmount = thisMonthTransfers.reduce((sum, t) => {
+      const transferAmount = parseFloat(t.amount);
+      const transferCurrency = t.currency || 'BDT';
+      const convertedAmount = convertToBaseCurrency(transferAmount, transferCurrency, baseCurrency);
+      
+      if (convertedAmount === null) {
+        transfersWithMissingRates.push(transferCurrency);
+        return sum; // Don't include transfers with missing rates in total
+      }
+      
+      return sum + convertedAmount;
+    }, 0);
     
     return {
       totalAccounts: activeAccounts.length,
       totalBalance,
       thisMonthTransfers: thisMonthTransfers.length,
       thisMonthAmount,
+      baseCurrency,
+      accountsWithMissingRates,
+      transfersWithMissingRates,
+      hasMissingRates: accountsWithMissingRates.length > 0 || transfersWithMissingRates.length > 0,
     };
-  }, [accounts, transfers]);
+  }, [accounts, transfers, exchangeRates, financeSettings]);
 
-  const formatCurrency = (amount: number) => `৳ ${amount.toLocaleString()}`;
+  // Enhanced currency formatting
+  const formatCurrency = (amount: number, currency: string = 'BDT') => {
+    const symbols = {
+      'BDT': '৳',
+      'USD': '$',
+      'USDT': 'USDT',
+      'EUR': '€',
+      'GBP': '£',
+      'INR': '₹',
+      'JPY': '¥',
+      'CNY': '¥',
+      'CAD': 'C$',
+      'AUD': 'A$'
+    };
+    
+    const symbol = symbols[currency as keyof typeof symbols] || currency;
+    return `${symbol} ${amount.toLocaleString()}`;
+  };
 
   // Color mapping for different account types
   const getAccountColor = (type: string, index: number) => {
@@ -113,7 +203,7 @@ export default function FundOverview() {
     return descriptions[txType as keyof typeof descriptions] || 'Transaction';
   };
 
-  if (accountsLoading || transfersLoading) {
+  if (accountsLoading || transfersLoading || ratesLoading) {
     return (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="fund-overview-loading">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -171,8 +261,20 @@ export default function FundOverview() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Total Balance</p>
                 <p className="text-lg md:text-2xl font-bold text-primary" data-testid="text-total-balance">
-                  {showBalances ? formatCurrency(stats.totalBalance) : '৳ ••••••'}
+                  {showBalances ? (
+                    <>
+                      {formatCurrency(stats.totalBalance, stats.baseCurrency)}
+                      {stats.hasMissingRates && (
+                        <span className="text-xs text-orange-600 ml-1">*</span>
+                      )}
+                    </>
+                  ) : formatCurrency(0, stats.baseCurrency).replace(/[0-9]/g, '•')}
                 </p>
+                {stats.hasMissingRates && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    * Total excludes accounts with missing exchange rates
+                  </p>
+                )}
               </div>
               <Wallet className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
@@ -213,7 +315,7 @@ export default function FundOverview() {
               <div>
                 <p className="text-xs md:text-sm text-muted-foreground">Monthly Volume</p>
                 <p className="text-lg md:text-2xl font-bold text-orange-600" data-testid="text-monthly-volume">
-                  {showBalances ? formatCurrency(stats.thisMonthAmount) : '৳ ••••••'}
+                  {showBalances ? formatCurrency(stats.thisMonthAmount, stats.baseCurrency) : formatCurrency(0, stats.baseCurrency).replace(/[0-9]/g, '•')}
                 </p>
               </div>
               <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />
@@ -260,7 +362,7 @@ export default function FundOverview() {
                           {account.name}
                         </h3>
                         <p className="text-xl font-bold" data-testid={`text-account-balance-${account.id}`}>
-                          {showBalances ? formatCurrency(parseFloat(account.currentBalance)) : '••••••'}
+                          {showBalances ? formatCurrency(parseFloat(account.currentBalance), account.currency || 'BDT') : '••••••'}
                         </p>
                         {account.paymentMethodKey && (
                           <p className="text-sm opacity-75 mt-1" data-testid={`text-payment-method-${account.id}`}>
@@ -281,7 +383,7 @@ export default function FundOverview() {
                         <div>
                           <h2 className="text-xl font-bold">{account.name}</h2>
                           <p className="text-sm text-muted-foreground">
-                            Current Balance: {formatCurrency(parseFloat(account.currentBalance))}
+                            Current Balance: {formatCurrency(parseFloat(account.currentBalance), account.currency || 'BDT')}
                           </p>
                         </div>
                       </DialogTitle>
