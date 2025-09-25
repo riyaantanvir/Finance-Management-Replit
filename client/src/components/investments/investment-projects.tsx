@@ -177,13 +177,15 @@ export default function InvestmentProjects() {
       const projectTransactions = transactions.filter(tx => tx.projectId === project.id);
       const projectPayouts = payouts.filter(p => p.projectId === project.id);
       
-      // Calculate invested amount (cost transactions)
-      const totalInvested = projectTransactions
+      // Calculate invested amount (initial amount + cost transactions)
+      const initialAmount = convertCurrency(parseFloat(project.initialAmount), project.currency, baseCurrency) || 0;
+      const transactionsCost = projectTransactions
         .filter(tx => tx.direction === 'cost')
         .reduce((sum, tx) => {
           const convertedAmount = convertCurrency(parseFloat(tx.amount), tx.currency, baseCurrency);
           return sum + (convertedAmount || 0);
         }, 0);
+      const totalInvested = initialAmount + transactionsCost;
 
       // Calculate returns (income transactions)
       const totalReturns = projectTransactions

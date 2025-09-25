@@ -40,9 +40,13 @@ export default function InvestmentReports() {
     const baseCurrency = financeSettings?.baseCurrency || 'BDT';
     
     // Calculate totals
-    const totalInvested = transactions
+    // Calculate total invested (initial amounts + cost transactions)
+    const totalInitialInvestment = projects
+      .reduce((sum, project) => sum + convertToBaseCurrency(parseFloat(project.initialAmount), project.currency, baseCurrency), 0);
+    const totalTransactionCosts = transactions
       .filter(tx => tx.direction === 'cost')
       .reduce((sum, tx) => sum + convertToBaseCurrency(parseFloat(tx.amount), tx.currency, baseCurrency), 0);
+    const totalInvested = totalInitialInvestment + totalTransactionCosts;
 
     const totalReturns = transactions
       .filter(tx => tx.direction === 'income')
@@ -59,9 +63,11 @@ export default function InvestmentReports() {
       const projectTxs = transactions.filter(tx => tx.projectId === project.id);
       const projectPayouts = payouts.filter(p => p.projectId === project.id);
       
-      const invested = projectTxs
+      const initialAmount = convertToBaseCurrency(parseFloat(project.initialAmount), project.currency, baseCurrency);
+      const transactionCosts = projectTxs
         .filter(tx => tx.direction === 'cost')
         .reduce((sum, tx) => sum + convertToBaseCurrency(parseFloat(tx.amount), tx.currency, baseCurrency), 0);
+      const invested = initialAmount + transactionCosts;
       
       const returns = projectTxs
         .filter(tx => tx.direction === 'income')
