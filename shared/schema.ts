@@ -119,6 +119,7 @@ export const invProjects = pgTable("inv_projects", {
   startDate: text("start_date").notNull(),
   status: projectStatusEnum("status").notNull().default("active"),
   currency: text("currency").notNull().default("BDT"),
+  initialAmount: decimal("initial_amount", { precision: 18, scale: 2 }).notNull().default("0"),
   notes: text("notes"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow(),
