@@ -3,13 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Settings, DollarSign, Edit, Trash2 } from "lucide-react";
-import { InvCategory, SettingsFinance } from "@shared/schema";
+import { InvCategory, InvProject, SettingsFinance } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertInvCategorySchema, type InsertInvCategory } from "@shared/schema";
@@ -27,6 +27,10 @@ export default function InvestmentSettings() {
     queryKey: ["/api/inv-categories"],
   });
 
+  const { data: projects = [] } = useQuery<InvProject[]>({
+    queryKey: ["/api/inv-projects"],
+  });
+
   const { data: financeSettings } = useQuery<SettingsFinance>({
     queryKey: ["/api/settings/finance"],
     initialData: { id: '', baseCurrency: 'BDT', allowNegativeBalances: true, updatedAt: null }
@@ -36,7 +40,8 @@ export default function InvestmentSettings() {
     resolver: zodResolver(insertInvCategorySchema),
     defaultValues: {
       name: "",
-      description: "",
+      projectId: "",
+      kind: "cost",
     },
   });
 
@@ -86,7 +91,8 @@ export default function InvestmentSettings() {
     setEditingCategory(category);
     editCategoryForm.reset({
       name: category.name,
-      description: category.description || "",
+      projectId: category.projectId,
+      kind: category.kind,
     });
   };
 
@@ -147,6 +153,9 @@ export default function InvestmentSettings() {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Create Investment Category</DialogTitle>
+                  <DialogDescription>
+                    Add a new category to organize your investment transactions.
+                  </DialogDescription>
                 </DialogHeader>
                 <Form {...createCategoryForm}>
                   <form onSubmit={createCategoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
@@ -164,19 +173,52 @@ export default function InvestmentSettings() {
                       )}
                     />
 
-                    <FormField
-                      control={createCategoryForm.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Category description (optional)" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={createCategoryForm.control}
+                        name="projectId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select project" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {projects.map(project => (
+                                  <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={createCategoryForm.control}
+                        name="kind"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Type</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="cost">Cost</SelectItem>
+                                <SelectItem value="income">Income</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     <div className="flex justify-end space-x-2 pt-4">
                       <Button type="button" variant="outline" onClick={() => setIsCreateCategoryModalOpen(false)}>
@@ -217,9 +259,16 @@ export default function InvestmentSettings() {
                 <div key={category.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <p className="font-medium">{category.name}</p>
-                    {category.description && (
-                      <p className="text-sm text-gray-500">{category.description}</p>
-                    )}
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {projects.find(p => p.id === category.projectId)?.name || 'Unknown Project'}
+                      </Badge>
+                      <Badge variant="outline" className={`text-xs ${
+                        category.kind === 'income' ? 'text-green-600 border-green-200' : 'text-blue-600 border-blue-200'
+                      }`}>
+                        {category.kind}
+                      </Badge>
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
