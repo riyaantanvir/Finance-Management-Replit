@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { InsertExpense } from "@shared/schema";
+import { InsertExpense, Tag, PaymentMethod } from "@shared/schema";
 
 export default function ExpenseForm() {
   const [formData, setFormData] = useState<InsertExpense>({
@@ -21,6 +21,15 @@ export default function ExpenseForm() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Fetch tags and payment methods from admin panel
+  const { data: tags = [] } = useQuery<Tag[]>({
+    queryKey: ["/api/tags"],
+  });
+
+  const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
+    queryKey: ["/api/payment-methods"],
+  });
 
   const createExpenseMutation = useMutation({
     mutationFn: (data: InsertExpense) => apiRequest("POST", "/api/expenses", data),
@@ -127,32 +136,44 @@ export default function ExpenseForm() {
             
             <div>
               <Label htmlFor="tag" className="text-sm font-medium">Tag</Label>
-              <Input
-                id="tag"
-                type="text"
-                placeholder="e.g., dining, travel, bills, shopping"
+              <Select
                 value={formData.tag}
-                onChange={(e) => handleInputChange('tag', e.target.value)}
+                onValueChange={(value) => handleInputChange('tag', value)}
                 required
-                className="mt-1 h-11"
-                data-testid="input-tag"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Enter any tag (auto-created)</p>
+              >
+                <SelectTrigger className="mt-1 h-11" data-testid="select-tag">
+                  <SelectValue placeholder="Select Tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tags.map((tag) => (
+                    <SelectItem key={tag.id} value={tag.name}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Select from admin-defined tags</p>
             </div>
             
             <div>
               <Label htmlFor="paymentMethod" className="text-sm font-medium">Payment Method</Label>
-              <Input
-                id="paymentMethod"
-                type="text"
-                placeholder="e.g., cash, card, bkash, bank transfer"
+              <Select
                 value={formData.paymentMethod}
-                onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                onValueChange={(value) => handleInputChange('paymentMethod', value)}
                 required
-                className="mt-1 h-11"
-                data-testid="input-payment-method"
-              />
-              <p className="text-xs text-muted-foreground mt-1">Enter any payment method (auto-created)</p>
+              >
+                <SelectTrigger className="mt-1 h-11" data-testid="select-payment-method">
+                  <SelectValue placeholder="Select Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.id} value={method.name}>
+                      {method.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Select from admin-defined payment methods</p>
             </div>
           </div>
           
