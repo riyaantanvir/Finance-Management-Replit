@@ -113,10 +113,26 @@ export default function InvestmentOverview() {
     // Track missing exchange rates
     let missingRates = new Set<string>();
     
-    // Calculate total invested (sum of cost transactions)
+    // Calculate total invested (sum of initial amounts + cost transactions)
     let totalInvested = 0;
     let excludedInvestmentAmount = 0;
     
+    // Add initial investment amounts from all projects
+    projects.forEach(project => {
+      const convertedInitialAmount = convertToBaseCurrency(parseFloat(project.initialAmount), project.currency, baseCurrency);
+      if (convertedInitialAmount !== null) {
+        totalInvested += convertedInitialAmount;
+      } else {
+        if (project.currency !== baseCurrency) {
+          missingRates.add(`${project.currency} → ${baseCurrency}`);
+          excludedInvestmentAmount += parseFloat(project.initialAmount);
+        } else {
+          totalInvested += parseFloat(project.initialAmount);
+        }
+      }
+    });
+    
+    // Add cost transactions
     transactions.filter(tx => tx.direction === 'cost').forEach(tx => {
       const convertedAmount = convertToBaseCurrency(parseFloat(tx.amount), tx.currency, baseCurrency);
       if (convertedAmount !== null) {
