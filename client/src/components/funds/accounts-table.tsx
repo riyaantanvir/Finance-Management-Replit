@@ -23,6 +23,14 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
   const [perPage, setPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [showBalances, setShowBalances] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAccountData, setNewAccountData] = useState({
+    name: '',
+    type: '',
+    currency: 'BDT',
+    openingBalance: '0',
+    paymentMethodKey: '',
+  });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -61,6 +69,32 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
       toast({
         title: "Error",
         description: "Failed to delete account",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/accounts", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/accounts"] });
+      setShowAddForm(false);
+      setNewAccountData({
+        name: '',
+        type: '',
+        currency: 'BDT',
+        openingBalance: '0',
+        paymentMethodKey: '',
+      });
+      toast({
+        title: "Success",
+        description: "Account created successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create account",
         variant: "destructive",
       });
     },
@@ -124,6 +158,25 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
     deleteAccountMutation.mutate(id);
   };
 
+  const handleCreateAccount = () => {
+    if (!newAccountData.name || !newAccountData.type) {
+      toast({
+        title: "Error",
+        description: "Please fill in required fields (Name and Type)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createAccountMutation.mutate({
+      name: newAccountData.name,
+      type: newAccountData.type,
+      currency: newAccountData.currency,
+      openingBalance: newAccountData.openingBalance,
+      paymentMethodKey: newAccountData.paymentMethodKey || null,
+    });
+  };
+
   const formatCurrency = (amount: string) => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount)) return '৳ 0';
@@ -168,6 +221,7 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
             </Button>
             <Button
               size="sm"
+              onClick={() => setShowAddForm(true)}
               data-testid="button-add-account"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -194,6 +248,88 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
         </div>
       </CardHeader>
       <CardContent>
+        {/* Add Account Form */}
+        {showAddForm && (
+          <div className="mb-6 p-4 border rounded-lg bg-muted/50">
+            <h3 className="text-lg font-medium mb-4">Add New Account</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="text-sm font-medium">Account Name *</label>
+                <Input
+                  value={newAccountData.name}
+                  onChange={(e) => setNewAccountData({ ...newAccountData, name: e.target.value })}
+                  placeholder="e.g., Main Cash, Bkash Personal"
+                  data-testid="input-new-account-name"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Account Type *</label>
+                <Select
+                  value={newAccountData.type}
+                  onValueChange={(value) => setNewAccountData({ ...newAccountData, type: value })}
+                >
+                  <SelectTrigger data-testid="select-new-account-type">
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="mobile_wallet">Mobile Wallet</SelectItem>
+                    <SelectItem value="bank_account">Bank Account</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="crypto">Crypto</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Currency</label>
+                <Input
+                  value={newAccountData.currency}
+                  onChange={(e) => setNewAccountData({ ...newAccountData, currency: e.target.value })}
+                  placeholder="BDT"
+                  data-testid="input-new-account-currency"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Opening Balance</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={newAccountData.openingBalance}
+                  onChange={(e) => setNewAccountData({ ...newAccountData, openingBalance: e.target.value })}
+                  placeholder="0.00"
+                  data-testid="input-new-account-balance"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Payment Method Key</label>
+                <Input
+                  value={newAccountData.paymentMethodKey}
+                  onChange={(e) => setNewAccountData({ ...newAccountData, paymentMethodKey: e.target.value })}
+                  placeholder="Links to expense payment methods"
+                  data-testid="input-new-account-payment-method"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                onClick={handleCreateAccount}
+                disabled={createAccountMutation.isPending}
+                data-testid="button-save-new-account"
+              >
+                {createAccountMutation.isPending ? "Creating..." : "Create Account"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowAddForm(false)}
+                data-testid="button-cancel-new-account"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
         {accounts.length === 0 ? (
           <p className="text-center text-muted-foreground py-8" data-testid="text-no-accounts">
             No accounts found
