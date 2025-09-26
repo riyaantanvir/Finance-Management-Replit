@@ -17,6 +17,9 @@ export const transactionDirectionEnum = pgEnum("transaction_direction", ["income
 // Enums for Subscription Management
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "paused"]);
 
+// Enums for Work Reports
+export const workReportStatusEnum = pgEnum("work_report_status", ["submitted", "approved", "rejected"]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -191,6 +194,19 @@ export const invPayouts = pgTable("inv_payouts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Work Reports Table
+export const workReports = pgTable("work_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  date: text("date").notNull(),
+  taskDetails: text("task_details").notNull(),
+  hours: decimal("hours", { precision: 5, scale: 2 }).notNull(),
+  status: workReportStatusEnum("status").notNull().default("submitted"),
+  comments: text("comments"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -275,6 +291,13 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   updatedAt: true,
 });
 
+// Work Reports Schemas
+export const insertWorkReportSchema = createInsertSchema(workReports).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
@@ -289,6 +312,9 @@ export const updateInvTxSchema = insertInvTxSchema.partial();
 
 // Subscription Management Update Schemas
 export const updateSubscriptionSchema = insertSubscriptionSchema.partial();
+
+// Work Reports Update Schemas
+export const updateWorkReportSchema = insertWorkReportSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -341,3 +367,8 @@ export type InvPayout = typeof invPayouts.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type UpdateSubscription = z.infer<typeof updateSubscriptionSchema>;
+
+// Work Reports Types
+export type InsertWorkReport = z.infer<typeof insertWorkReportSchema>;
+export type WorkReport = typeof workReports.$inferSelect;
+export type UpdateWorkReport = z.infer<typeof updateWorkReportSchema>;

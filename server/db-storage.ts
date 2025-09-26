@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -42,7 +42,10 @@ import {
   type UpdateSubscription,
   type TelegramSettings,
   type InsertTelegramSettings,
-  type UpdateTelegramSettings
+  type UpdateTelegramSettings,
+  type WorkReport,
+  type InsertWorkReport,
+  type UpdateWorkReport
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -1285,5 +1288,80 @@ export class DatabaseStorage implements IStorage {
       console.error('Telegram connection test failed:', error);
       return false;
     }
+  }
+
+  // Work Reports methods
+  async getWorkReport(id: string): Promise<WorkReport | undefined> {
+    return await db.query.workReports.findFirst({
+      where: eq(workReports.id, id)
+    });
+  }
+
+  async createWorkReport(workReport: InsertWorkReport): Promise<WorkReport> {
+    const [result] = await db.insert(workReports).values(workReport).returning();
+    return result;
+  }
+
+  async updateWorkReport(id: string, workReport: UpdateWorkReport): Promise<WorkReport | undefined> {
+    const [result] = await db.update(workReports)
+      .set({ ...workReport, updatedAt: new Date() })
+      .where(eq(workReports.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteWorkReport(id: string): Promise<boolean> {
+    const result = await db.delete(workReports).where(eq(workReports.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllWorkReports(): Promise<WorkReport[]> {
+    return await db.query.workReports.findMany({
+      orderBy: [desc(workReports.date), desc(workReports.createdAt)]
+    });
+  }
+
+  async getWorkReportsByUser(userId: string): Promise<WorkReport[]> {
+    return await db.query.workReports.findMany({
+      where: eq(workReports.userId, userId),
+      orderBy: [desc(workReports.date), desc(workReports.createdAt)]
+    });
+  }
+
+  async getFilteredWorkReports(filters: {
+    userId?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    taskDetails?: string;
+  }): Promise<WorkReport[]> {
+    const conditions: any[] = [];
+
+    if (filters.userId) {
+      conditions.push(eq(workReports.userId, filters.userId));
+    }
+
+    if (filters.status) {
+      conditions.push(eq(workReports.status, filters.status as "submitted" | "approved" | "rejected"));
+    }
+
+    if (filters.taskDetails) {
+      conditions.push(sql`${workReports.taskDetails} ILIKE ${`%${filters.taskDetails}%`}`);
+    }
+
+    if (filters.startDate) {
+      conditions.push(gte(workReports.date, filters.startDate));
+    }
+
+    if (filters.endDate) {
+      conditions.push(lte(workReports.date, filters.endDate));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return await db.query.workReports.findMany({
+      where: whereClause,
+      orderBy: [desc(workReports.date), desc(workReports.createdAt)]
+    });
   }
 }

@@ -1,6 +1,6 @@
 # Overview
 
-This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
+This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application now includes an **Advantix Agency Work Reports System** for time tracking and project management with secure role-based permissions. The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
 
 # User Preferences
 
@@ -28,13 +28,21 @@ The application uses Drizzle ORM with PostgreSQL schema definitions:
 
 - **Users Table**: Stores user credentials and role-based permissions (dashboard access, expense entry access, admin panel access)
 - **Expenses Table**: Tracks financial transactions with date, type (income/expense), details, amount, tags, and payment methods
+- **Work Reports Table**: Tracks time entries for Advantix Agency work with user assignments, dates, task details, hours worked, approval status, and comments
 - **Schema Validation**: Zod schemas for runtime type checking and validation
 
 ## Authentication & Authorization
 - **Simple Authentication**: Username/password based login system
 - **Role-Based Access**: Granular permissions system controlling access to different application features
 - **Session Management**: Client-side session handling with localStorage persistence
+- **Work Reports Security**: Server-side session validation with middleware for work reports API routes
 - **Default Admin**: Pre-configured admin user (username: "Admin", password: "Admin")
+
+### Work Reports Security Model
+- **Session-based Authentication**: Server-side session validation for work reports routes
+- **Role-based Authorization**: Non-admin users can only access their own work reports; admin users can access all reports
+- **Authentication Middleware**: Centralized security validation before work reports operations
+- **Access Control**: Proper 401/403 HTTP status codes for authentication and authorization failures
 
 ## Data Storage
 - **Current Implementation**: In-memory storage using Map data structures

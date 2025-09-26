@@ -39,7 +39,10 @@ import {
   type UpdateSubscription,
   type TelegramSettings,
   type InsertTelegramSettings,
-  type UpdateTelegramSettings
+  type UpdateTelegramSettings,
+  type WorkReport,
+  type InsertWorkReport,
+  type UpdateWorkReport
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -173,6 +176,21 @@ export interface IStorage {
   createTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings>;
   updateTelegramSettings(id: string, settings: UpdateTelegramSettings): Promise<TelegramSettings | undefined>;
   testTelegramConnection(botToken: string, chatId: string): Promise<boolean>;
+
+  // Work Reports methods
+  getWorkReport(id: string): Promise<WorkReport | undefined>;
+  createWorkReport(workReport: InsertWorkReport): Promise<WorkReport>;
+  updateWorkReport(id: string, workReport: UpdateWorkReport): Promise<WorkReport | undefined>;
+  deleteWorkReport(id: string): Promise<boolean>;
+  getAllWorkReports(): Promise<WorkReport[]>;
+  getWorkReportsByUser(userId: string): Promise<WorkReport[]>;
+  getFilteredWorkReports(filters: {
+    userId?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    taskDetails?: string;
+  }): Promise<WorkReport[]>;
 }
 
 export class MemStorage {

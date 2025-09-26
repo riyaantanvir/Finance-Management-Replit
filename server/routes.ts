@@ -27,9 +27,43 @@ import {
   insertSubscriptionSchema,
   updateSubscriptionSchema,
   insertTelegramSettingsSchema,
-  updateTelegramSettingsSchema
+  updateTelegramSettingsSchema,
+  insertWorkReportSchema,
+  updateWorkReportSchema
 } from "@shared/schema";
 import { z } from "zod";
+import crypto from "crypto";
+
+// Simple session store for authentication (module-level to persist across hot reloads)
+const sessions = new Map<string, { userId: string; createdAt: Date }>();
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+
+// Clean expired sessions every hour
+setInterval(() => {
+  const now = new Date();
+  for (const [sessionId, session] of sessions.entries()) {
+    if (now.getTime() - session.createdAt.getTime() > SESSION_TIMEOUT) {
+      sessions.delete(sessionId);
+    }
+  }
+}, 60 * 60 * 1000);
+
+// Helper function to validate session and get user
+async function validateSession(sessionId: string | undefined) {
+  if (!sessionId) return null;
+  
+  const session = sessions.get(sessionId);
+  if (!session) return null;
+  
+  // Check if session is expired
+  if (new Date().getTime() - session.createdAt.getTime() > SESSION_TIMEOUT) {
+    sessions.delete(sessionId);
+    return null;
+  }
+  
+  const user = await storage.getUser(session.userId);
+  return user;
+}
 
 const loginSchema = z.object({
   username: z.string(),
@@ -37,6 +71,19 @@ const loginSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Middleware for work reports authentication
+  async function requireWorkReportsAuth(req: any, res: any, next: any) {
+    const sessionId = req.query.sessionId || req.body.sessionId;
+    const user = await validateSession(sessionId);
+    
+    if (!user) {
+      return res.status(401).json({ message: "Authentication required for work reports" });
+    }
+    
+    req.authenticatedUser = user;
+    next();
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -47,9 +94,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Create session
+      const sessionId = crypto.randomUUID();
+      sessions.set(sessionId, {
+        userId: user.id,
+        createdAt: new Date()
+      });
+
       // Remove password from response
       const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: userWithoutPassword });
+      res.json({ 
+        user: userWithoutPassword,
+        sessionId
+      });
     } catch (error) {
       res.status(400).json({ message: "Invalid request data" });
     }
@@ -1388,6 +1445,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Send daily report error:', error);
       res.status(500).json({ message: "Failed to send daily report" });
+    }
+  });
+
+  // Work Reports routes
+  app.get("/api/work-reports", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { userId, startDate, endDate, status, taskDetails } = req.query;
+      const authenticatedUser = req.authenticatedUser;
+
+      // Role-based access control
+      let targetUserId = userId as string;
+      if (!authenticatedUser.adminPanelAccess) {
+        // Non-admin users can only view their own reports
+        targetUserId = authenticatedUser.id;
+      }
+      
+      const filters = {
+        userId: targetUserId,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        status: status as string,
+        taskDetails: taskDetails as string
+      };
+
+      const workReports = await storage.getFilteredWorkReports(filters);
+      res.json(workReports);
+    } catch (error) {
+      console.error('Fetch work reports error:', error);
+      res.status(500).json({ message: "Failed to fetch work reports" });
+    }
+  });
+
+  app.get("/api/work-reports/:id", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const authenticatedUser = req.authenticatedUser;
+
+      const workReport = await storage.getWorkReport(id);
+      
+      if (!workReport) {
+        return res.status(404).json({ message: "Work report not found" });
+      }
+
+      // Role-based access control
+      if (!authenticatedUser.adminPanelAccess && workReport.userId !== authenticatedUser.id) {
+        return res.status(403).json({ message: "Access denied. You can only view your own reports." });
+      }
+
+      res.json(workReport);
+    } catch (error) {
+      console.error('Fetch work report error:', error);
+      res.status(500).json({ message: "Failed to fetch work report" });
+    }
+  });
+
+  app.post("/api/work-reports", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { sessionId, ...workReportData } = req.body;
+      const authenticatedUser = req.authenticatedUser;
+
+      const validatedData = insertWorkReportSchema.parse(workReportData);
+      
+      // Role-based access control for creating reports
+      if (!authenticatedUser.adminPanelAccess && validatedData.userId !== authenticatedUser.id) {
+        return res.status(403).json({ message: "Access denied. You can only create reports for yourself." });
+      }
+
+      const workReport = await storage.createWorkReport(validatedData);
+      res.status(201).json(workReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Create work report error:', error);
+        res.status(500).json({ message: "Failed to create work report" });
+      }
+    }
+  });
+
+  app.put("/api/work-reports/:id", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { sessionId, ...workReportData } = req.body;
+      const authenticatedUser = req.authenticatedUser;
+
+      // Check if work report exists
+      const existingReport = await storage.getWorkReport(id);
+      if (!existingReport) {
+        return res.status(404).json({ message: "Work report not found" });
+      }
+
+      // Role-based access control
+      if (!authenticatedUser.adminPanelAccess && existingReport.userId !== authenticatedUser.id) {
+        return res.status(403).json({ message: "Access denied. You can only update your own reports." });
+      }
+
+      const validatedData = updateWorkReportSchema.parse(workReportData);
+      const workReport = await storage.updateWorkReport(id, validatedData);
+      
+      res.json(workReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Update work report error:', error);
+        res.status(500).json({ message: "Failed to update work report" });
+      }
+    }
+  });
+
+  app.delete("/api/work-reports/:id", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const authenticatedUser = req.authenticatedUser;
+
+      // Check if work report exists
+      const existingReport = await storage.getWorkReport(id);
+      if (!existingReport) {
+        return res.status(404).json({ message: "Work report not found" });
+      }
+
+      // Role-based access control
+      if (!authenticatedUser.adminPanelAccess && existingReport.userId !== authenticatedUser.id) {
+        return res.status(403).json({ message: "Access denied. You can only delete your own reports." });
+      }
+      
+      const deleted = await storage.deleteWorkReport(id);
+      res.json({ message: "Work report deleted successfully" });
+    } catch (error) {
+      console.error('Delete work report error:', error);
+      res.status(500).json({ message: "Failed to delete work report" });
+    }
+  });
+
+  // Get work reports by user
+  app.get("/api/work-reports/user/:userId", requireWorkReportsAuth, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const authenticatedUser = req.authenticatedUser;
+
+      // Role-based access control
+      if (!authenticatedUser.adminPanelAccess && userId !== authenticatedUser.id) {
+        return res.status(403).json({ message: "Access denied. You can only view your own reports." });
+      }
+
+      const workReports = await storage.getWorkReportsByUser(userId);
+      res.json(workReports);
+    } catch (error) {
+      console.error('Fetch user work reports error:', error);
+      res.status(500).json({ message: "Failed to fetch user work reports" });
     }
   });
 

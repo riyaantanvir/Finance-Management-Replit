@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports } from '@shared/schema';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
@@ -8,5 +8,5 @@ if (!process.env.DATABASE_URL) {
 
 const sql = neon(process.env.DATABASE_URL);
 export const db = drizzle(sql, {
-  schema: { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings }
+  schema: { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports }
 });
