@@ -41,11 +41,11 @@ const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 // Clean expired sessions every hour
 setInterval(() => {
   const now = new Date();
-  for (const [sessionId, session] of sessions.entries()) {
+  sessions.forEach((session, sessionId) => {
     if (now.getTime() - session.createdAt.getTime() > SESSION_TIMEOUT) {
       sessions.delete(sessionId);
     }
-  }
+  });
 }, 60 * 60 * 1000);
 
 // Helper function to validate session and get user
