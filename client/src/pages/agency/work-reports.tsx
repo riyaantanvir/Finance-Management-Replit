@@ -51,7 +51,7 @@ export default function WorkReportsPage() {
       userId: currentUser?.id || "",
       date: new Date().toISOString().split('T')[0],
       taskDetails: "",
-      hours: 0,
+      hours: "0",
       status: "submitted",
       comments: "",
     },
@@ -122,7 +122,7 @@ export default function WorkReportsPage() {
         userId: currentUser?.id || "",
         date: new Date().toISOString().split('T')[0],
         taskDetails: "",
-        hours: 0,
+        hours: "0",
         status: "submitted",
         comments: "",
       });
@@ -274,7 +274,7 @@ export default function WorkReportsPage() {
                           min="0"
                           max="24"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value || "0")}
                           data-testid="input-hours"
                         />
                       </FormControl>
