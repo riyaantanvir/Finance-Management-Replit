@@ -23,7 +23,7 @@ export default function AdminPanel() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, tags, payment methods, exchange rates, and telegram settings</p>
+          <p className="text-muted-foreground">Manage users, tags, payment methods, exchange rates, and other settings</p>
         </div>
       </div>
 
@@ -41,9 +41,9 @@ export default function AdminPanel() {
             <CreditCard className="h-4 w-4 mr-2" />
             Payment Methods
           </TabsTrigger>
-          <TabsTrigger value="telegram-management" data-testid="tab-telegram-management">
+          <TabsTrigger value="telegram-management" data-testid="tab-others-settings">
             <Send className="h-4 w-4 mr-2" />
-            Telegram Management
+            Others Settings
           </TabsTrigger>
         </TabsList>
 
