@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { insertWorkReportSchema } from "@shared/schema";
 import { z } from "zod";
-import { Plus, Calendar, Clock, User, FileText } from "lucide-react";
+import { Plus, Calendar, Clock, User, FileText, Filter, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getAuthState } from "@/lib/auth";
@@ -36,14 +36,55 @@ interface WorkReport {
   comments: string | null;
 }
 
+type DateFilter = "all" | "today" | "yesterday" | "thisMonth" | "lastMonth";
+
 export default function WorkReportsPage() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const authState = getAuthState();
   const currentUser = authState.user;
   
   // Check for sessionId in localStorage
   const sessionId = localStorage.getItem('sessionId');
+
+  // Helper functions for date filtering
+  const getDateRange = (filter: DateFilter) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    switch (filter) {
+      case "today":
+        return { startDate: todayStr, endDate: todayStr };
+      case "yesterday":
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        return { startDate: yesterdayStr, endDate: yesterdayStr };
+      case "thisMonth":
+        const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        const thisMonthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        return { 
+          startDate: thisMonthStart.toISOString().split('T')[0], 
+          endDate: thisMonthEnd.toISOString().split('T')[0] 
+        };
+      case "lastMonth":
+        const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { 
+          startDate: lastMonthStart.toISOString().split('T')[0], 
+          endDate: lastMonthEnd.toISOString().split('T')[0] 
+        };
+      default:
+        return null;
+    }
+  };
+
+  const clearFilters = () => {
+    setSelectedUser("all");
+    setDateFilter("all");
+  };
 
   const form = useForm<WorkReportFormData>({
     resolver: zodResolver(insertWorkReportSchema),
@@ -63,18 +104,28 @@ export default function WorkReportsPage() {
     enabled: currentUser?.adminPanelAccess || false,
   });
 
-  // Fetch work reports with sessionId parameter
+  // Fetch work reports with sessionId and filter parameters
   const { data: workReports = [], isLoading } = useQuery<WorkReport[]>({
-    queryKey: ["/api/work-reports", sessionId],
+    queryKey: ["/api/work-reports", sessionId, selectedUser, dateFilter],
     queryFn: async () => {
       if (!sessionId) return [];
       
       const params = new URLSearchParams();
       params.append('sessionId', sessionId);
       
-      // Non-admins only see their own reports
-      if (!currentUser?.adminPanelAccess && currentUser?.id) {
+      // Add user filter
+      if (selectedUser !== "all") {
+        params.append('userId', selectedUser);
+      } else if (!currentUser?.adminPanelAccess && currentUser?.id) {
+        // Non-admins only see their own reports
         params.append('userId', currentUser.id);
+      }
+      
+      // Add date filter
+      const dateRange = getDateRange(dateFilter);
+      if (dateRange) {
+        params.append('startDate', dateRange.startDate);
+        params.append('endDate', dateRange.endDate);
       }
       
       const response = await fetch(`/api/work-reports?${params.toString()}`);
@@ -316,6 +367,72 @@ export default function WorkReportsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Filters Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-center">
+            {/* User Filter - Only for admins */}
+            {currentUser?.adminPanelAccess && (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">User</label>
+                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                  <SelectTrigger className="w-48" data-testid="filter-user">
+                    <SelectValue placeholder="All users" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.username}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Date Filter */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Date Range</label>
+              <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
+                <SelectTrigger className="w-48" data-testid="filter-date">
+                  <SelectValue placeholder="All dates" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="thisMonth">This Month</SelectItem>
+                  <SelectItem value="lastMonth">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(selectedUser !== "all" || dateFilter !== "all") && (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-transparent">Clear</label>
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                  data-testid="button-clear-filters"
+                >
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
