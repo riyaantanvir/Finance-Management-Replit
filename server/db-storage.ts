@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -36,7 +36,10 @@ import {
   type InsertInvTx,
   type UpdateInvTx,
   type InvPayout,
-  type InsertInvPayout
+  type InsertInvPayout,
+  type Subscription,
+  type InsertSubscription,
+  type UpdateSubscription
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -1179,5 +1182,60 @@ export class DatabaseStorage implements IStorage {
     }).returning();
     
     return newAccount;
+  }
+
+  // Subscription methods
+  async getSubscription(id: string): Promise<Subscription | undefined> {
+    const result = await db.query.subscriptions.findFirst({
+      where: eq(subscriptions.id, id)
+    });
+    return result;
+  }
+
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const [result] = await db.insert(subscriptions).values(subscription).returning();
+    return result;
+  }
+
+  async updateSubscription(id: string, subscription: UpdateSubscription): Promise<Subscription | undefined> {
+    const [result] = await db.update(subscriptions)
+      .set({ ...subscription, updatedAt: new Date() })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteSubscription(id: string): Promise<boolean> {
+    const result = await db.delete(subscriptions).where(eq(subscriptions.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllSubscriptions(): Promise<Subscription[]> {
+    return await db.query.subscriptions.findMany({
+      orderBy: [subscriptions.name]
+    });
+  }
+
+  async getActiveSubscriptions(): Promise<Subscription[]> {
+    return await db.query.subscriptions.findMany({
+      where: eq(subscriptions.status, 'active'),
+      orderBy: [subscriptions.name]
+    });
+  }
+
+  async getSubscriptionsDueForAlert(daysFromNow: number): Promise<Subscription[]> {
+    // Calculate target date (today + daysFromNow days)
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + daysFromNow);
+    const targetDateStr = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    return await db.query.subscriptions.findMany({
+      where: and(
+        eq(subscriptions.status, 'active'),
+        eq(subscriptions.alertEnabled, true),
+        eq(subscriptions.nextBillDate, targetDateStr)
+      ),
+      orderBy: [subscriptions.name]
+    });
   }
 }

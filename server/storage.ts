@@ -33,7 +33,10 @@ import {
   type InsertInvTx,
   type UpdateInvTx,
   type InvPayout,
-  type InsertInvPayout
+  type InsertInvPayout,
+  type Subscription,
+  type InsertSubscription,
+  type UpdateSubscription
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -152,6 +155,15 @@ export interface IStorage {
   deleteInvPayout(id: string): Promise<boolean>;
   getAllInvPayouts(): Promise<InvPayout[]>;
   getInvPayoutsByProject(projectId: string): Promise<InvPayout[]>;
+
+  // Subscription methods
+  getSubscription(id: string): Promise<Subscription | undefined>;
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  updateSubscription(id: string, subscription: UpdateSubscription): Promise<Subscription | undefined>;
+  deleteSubscription(id: string): Promise<boolean>;
+  getAllSubscriptions(): Promise<Subscription[]>;
+  getActiveSubscriptions(): Promise<Subscription[]>;
+  getSubscriptionsDueForAlert(daysFromNow: number): Promise<Subscription[]>;
 }
 
 export class MemStorage {
