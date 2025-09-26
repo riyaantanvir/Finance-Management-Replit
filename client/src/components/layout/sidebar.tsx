@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { getAuthState } from "@/lib/auth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,6 +16,9 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   const [fundsExpanded, setFundsExpanded] = useState(location.startsWith("/funds"));
   const [investmentsExpanded, setInvestmentsExpanded] = useState(location.startsWith("/investments"));
   const [agencyExpanded, setAgencyExpanded] = useState(location.startsWith("/agency"));
+  
+  const authState = getAuthState();
+  const user = authState.user;
 
   // Keep expanded state synced with route changes
   useEffect(() => {
@@ -29,12 +33,14 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
     }
   }, [location]);
 
-  const navigation = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart },
-    { name: "Expense Entry", href: "/expense-entry", icon: Plus },
-    { name: "Subscriptions", href: "/subscriptions", icon: CreditCard },
-    { name: "Admin Panel", href: "/admin-panel", icon: Users },
+  const allNavigationItems = [
+    { name: "Dashboard", href: "/dashboard", icon: BarChart, permission: user?.dashboardAccess },
+    { name: "Expense Entry", href: "/expense-entry", icon: Plus, permission: user?.expenseEntryAccess },
+    { name: "Subscriptions", href: "/subscriptions", icon: CreditCard, permission: user?.subscriptionsAccess },
+    { name: "Admin Panel", href: "/admin-panel", icon: Users, permission: user?.adminPanelAccess },
   ];
+  
+  const navigation = allNavigationItems.filter(item => item.permission);
 
   const fundsNavigation = [
     { name: "Overview", href: "/funds/overview" },
@@ -119,6 +125,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
         })}
 
         {/* Fund Management Section */}
+        {user?.fundManagementAccess && (
         <div className="mt-4">
           <button
             onClick={() => setFundsExpanded(!fundsExpanded)}
@@ -168,8 +175,10 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Investment Management Section */}
+        {user?.investmentManagementAccess && (
         <div className="mt-4">
           <button
             onClick={() => setInvestmentsExpanded(!investmentsExpanded)}
@@ -219,8 +228,10 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
             </div>
           )}
         </div>
+        )}
 
         {/* Advantix Agency Section */}
+        {user?.advantixAgencyAccess && (
         <div className="mt-4">
           <button
             onClick={() => setAgencyExpanded(!agencyExpanded)}
@@ -270,6 +281,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
             </div>
           )}
         </div>
+        )}
       </nav>
     </div>
   );
