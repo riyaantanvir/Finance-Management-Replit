@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard } from "lucide-react";
+import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
@@ -14,14 +14,18 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   const [location] = useLocation();
   const [fundsExpanded, setFundsExpanded] = useState(location.startsWith("/funds"));
   const [investmentsExpanded, setInvestmentsExpanded] = useState(location.startsWith("/investments"));
+  const [agencyExpanded, setAgencyExpanded] = useState(location.startsWith("/agency"));
 
-  // Keep funds expanded state synced with route changes
+  // Keep expanded state synced with route changes
   useEffect(() => {
     if (location.startsWith("/funds")) {
       setFundsExpanded(true);
     }
     if (location.startsWith("/investments")) {
       setInvestmentsExpanded(true);
+    }
+    if (location.startsWith("/agency")) {
+      setAgencyExpanded(true);
     }
   }, [location]);
 
@@ -47,6 +51,10 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
     { name: "Payouts", href: "/investments/payouts" },
     { name: "Reports", href: "/investments/reports" },
     { name: "Settings", href: "/investments/settings" },
+  ];
+
+  const agencyNavigation = [
+    { name: "Work Reports", href: "/agency/work-reports" },
   ];
 
   const handleLinkClick = () => {
@@ -203,6 +211,57 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                     )}
                     data-testid={`link-investments-${item.name.toLowerCase()}`}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Advantix Agency Section */}
+        <div className="mt-4">
+          <button
+            onClick={() => setAgencyExpanded(!agencyExpanded)}
+            className={cn(
+              "flex items-center justify-between w-full px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
+              location.startsWith("/agency")
+                ? "text-primary bg-accent border-l-4 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+            data-testid="button-agency-menu"
+          >
+            <div className="flex items-center">
+              <Building2 className="h-5 w-5 min-w-[1.25rem]" />
+              {(isOpen || isMobile) && <span className="ml-3 truncate">Advantix Agency</span>}
+            </div>
+            {(isOpen || isMobile) && (
+              agencyExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )
+            )}
+          </button>
+
+          {/* Advantix Agency Submenu */}
+          {agencyExpanded && (isOpen || isMobile) && (
+            <div className="ml-8 mt-2 space-y-1">
+              {agencyNavigation.map((item) => {
+                const isActive = location === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm transition-colors rounded-lg",
+                      isActive
+                        ? "text-primary bg-accent/50 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    )}
+                    data-testid={`link-agency-${item.name.toLowerCase().replace(' ', '-')}`}
                   >
                     {item.name}
                   </Link>
