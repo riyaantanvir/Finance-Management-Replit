@@ -16,6 +16,10 @@ export default function UserForm() {
     dashboardAccess: true,
     expenseEntryAccess: true,
     adminPanelAccess: false,
+    advantixAgencyAccess: false,
+    investmentManagementAccess: false,
+    fundManagementAccess: false,
+    subscriptionsAccess: false,
   });
 
   const queryClient = useQueryClient();
@@ -35,6 +39,10 @@ export default function UserForm() {
         dashboardAccess: true,
         expenseEntryAccess: true,
         adminPanelAccess: false,
+        advantixAgencyAccess: false,
+        investmentManagementAccess: false,
+        fundManagementAccess: false,
+        subscriptionsAccess: false,
       });
     },
     onError: (error: any) => {
@@ -123,6 +131,50 @@ export default function UserForm() {
                 />
                 <Label htmlFor="adminPanelAccess" className="text-sm font-normal">
                   Admin Panel Access
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="advantixAgencyAccess"
+                  checked={!!formData.advantixAgencyAccess}
+                  onCheckedChange={(checked) => handleInputChange('advantixAgencyAccess', !!checked)}
+                  data-testid="checkbox-advantix-agency-access"
+                />
+                <Label htmlFor="advantixAgencyAccess" className="text-sm font-normal">
+                  Advantix Agency Access
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="investmentManagementAccess"
+                  checked={!!formData.investmentManagementAccess}
+                  onCheckedChange={(checked) => handleInputChange('investmentManagementAccess', !!checked)}
+                  data-testid="checkbox-investment-management-access"
+                />
+                <Label htmlFor="investmentManagementAccess" className="text-sm font-normal">
+                  Investment Management Access
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="fundManagementAccess"
+                  checked={!!formData.fundManagementAccess}
+                  onCheckedChange={(checked) => handleInputChange('fundManagementAccess', !!checked)}
+                  data-testid="checkbox-fund-management-access"
+                />
+                <Label htmlFor="fundManagementAccess" className="text-sm font-normal">
+                  Fund Management Access
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="subscriptionsAccess"
+                  checked={!!formData.subscriptionsAccess}
+                  onCheckedChange={(checked) => handleInputChange('subscriptionsAccess', !!checked)}
+                  data-testid="checkbox-subscriptions-access"
+                />
+                <Label htmlFor="subscriptionsAccess" className="text-sm font-normal">
+                  Subscriptions Access
                 </Label>
               </div>
             </div>

@@ -68,6 +68,10 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
       dashboardAccess: user.dashboardAccess,
       expenseEntryAccess: user.expenseEntryAccess,
       adminPanelAccess: user.adminPanelAccess,
+      advantixAgencyAccess: user.advantixAgencyAccess,
+      investmentManagementAccess: user.investmentManagementAccess,
+      fundManagementAccess: user.fundManagementAccess,
+      subscriptionsAccess: user.subscriptionsAccess,
     });
   };
 
@@ -126,6 +130,10 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
                   <TableHead>Dashboard</TableHead>
                   <TableHead>Expense Entry</TableHead>
                   <TableHead>Admin Panel</TableHead>
+                  <TableHead>Advantix Agency</TableHead>
+                  <TableHead>Investment Mgmt</TableHead>
+                  <TableHead>Fund Mgmt</TableHead>
+                  <TableHead>Subscriptions</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -195,6 +203,90 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
                           data-testid={`badge-admin-panel-${user.id}`}
                         >
                           {user.adminPanelAccess ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === user.id ? (
+                        <Checkbox
+                          checked={!!editData.advantixAgencyAccess}
+                          onCheckedChange={(checked) => handlePermissionChange('advantixAgencyAccess', !!checked)}
+                          data-testid={`checkbox-edit-advantix-${user.id}`}
+                        />
+                      ) : (
+                        <Badge
+                          variant={user.advantixAgencyAccess ? 'default' : 'destructive'}
+                          className={
+                            user.advantixAgencyAccess
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
+                          data-testid={`badge-advantix-agency-${user.id}`}
+                        >
+                          {user.advantixAgencyAccess ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === user.id ? (
+                        <Checkbox
+                          checked={!!editData.investmentManagementAccess}
+                          onCheckedChange={(checked) => handlePermissionChange('investmentManagementAccess', !!checked)}
+                          data-testid={`checkbox-edit-investment-${user.id}`}
+                        />
+                      ) : (
+                        <Badge
+                          variant={user.investmentManagementAccess ? 'default' : 'destructive'}
+                          className={
+                            user.investmentManagementAccess
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
+                          data-testid={`badge-investment-management-${user.id}`}
+                        >
+                          {user.investmentManagementAccess ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === user.id ? (
+                        <Checkbox
+                          checked={!!editData.fundManagementAccess}
+                          onCheckedChange={(checked) => handlePermissionChange('fundManagementAccess', !!checked)}
+                          data-testid={`checkbox-edit-fund-${user.id}`}
+                        />
+                      ) : (
+                        <Badge
+                          variant={user.fundManagementAccess ? 'default' : 'destructive'}
+                          className={
+                            user.fundManagementAccess
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
+                          data-testid={`badge-fund-management-${user.id}`}
+                        >
+                          {user.fundManagementAccess ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === user.id ? (
+                        <Checkbox
+                          checked={!!editData.subscriptionsAccess}
+                          onCheckedChange={(checked) => handlePermissionChange('subscriptionsAccess', !!checked)}
+                          data-testid={`checkbox-edit-subscriptions-${user.id}`}
+                        />
+                      ) : (
+                        <Badge
+                          variant={user.subscriptionsAccess ? 'default' : 'destructive'}
+                          className={
+                            user.subscriptionsAccess
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
+                          data-testid={`badge-subscriptions-${user.id}`}
+                        >
+                          {user.subscriptionsAccess ? 'Yes' : 'No'}
                         </Badge>
                       )}
                     </TableCell>
