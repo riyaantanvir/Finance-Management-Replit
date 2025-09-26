@@ -129,7 +129,7 @@ export class TelegramService {
       const netBalance = totalIncome - totalExpenses;
       const transactionCount = expenses.length;
 
-      // Build message
+      // Build message with character limit handling
       let message = `📊 *Daily Report*\n\n` +
         `💰 *Total Income:* ৳${totalIncome.toFixed(2)}\n` +
         `💸 *Total Expenses:* ৳${totalExpenses.toFixed(2)}\n` +
@@ -137,7 +137,25 @@ export class TelegramService {
         `📋 *Today's Transactions:* ${transactionCount} Transaction(s)\n\n`;
 
       if (transactionsList.length > 0) {
-        message += '*Transaction Details:*\n' + transactionsList.join('\n');
+        let transactionDetails = '*Transaction Details:*\n';
+        let remainingChars = 4000 - message.length - transactionDetails.length; // Leave buffer for Telegram limit
+        
+        const truncatedTransactions = [];
+        for (const transaction of transactionsList) {
+          if (remainingChars - transaction.length - 1 > 0) { // -1 for newline
+            truncatedTransactions.push(transaction);
+            remainingChars -= transaction.length + 1;
+          } else {
+            break;
+          }
+        }
+        
+        message += transactionDetails + truncatedTransactions.join('\n');
+        
+        // Add note if transactions were truncated
+        if (truncatedTransactions.length < transactionsList.length) {
+          message += `\n\n_... and ${transactionsList.length - truncatedTransactions.length} more transactions_`;
+        }
       }
 
       return await this.sendMessage(message);
