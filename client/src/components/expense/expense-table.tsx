@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Edit, Trash2, Download } from "lucide-react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Expense } from "@shared/schema";
+import { Expense, ExchangeRate, SettingsFinance } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
 interface ExpenseTableProps {
@@ -67,6 +67,93 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     },
   });
 
+  // Fetch exchange rates and finance settings for export
+  const { data: exchangeRates = [] } = useQuery<ExchangeRate[]>({
+    queryKey: ["/api/exchange-rates"],
+  });
+
+  const { data: financeSettings } = useQuery<SettingsFinance>({
+    queryKey: ["/api/settings/finance"],
+    initialData: { id: '', baseCurrency: 'BDT', allowNegativeBalances: true, updatedAt: null }
+  });
+
+  // Currency conversion function
+  const convertToBDT = (amount: number, fromCurrency: string): number => {
+    const baseCurrency = 'BDT';
+    if (fromCurrency === baseCurrency) {
+      return amount;
+    }
+
+    // Find exchange rate from fromCurrency to BDT
+    const rate = exchangeRates.find(r => 
+      r.fromCurrency === fromCurrency && r.toCurrency === baseCurrency
+    );
+
+    if (rate) {
+      return amount * parseFloat(rate.rate);
+    }
+
+    // If no direct rate found, try inverse rate
+    const inverseRate = exchangeRates.find(r => 
+      r.fromCurrency === baseCurrency && r.toCurrency === fromCurrency
+    );
+
+    if (inverseRate) {
+      return amount / parseFloat(inverseRate.rate);
+    }
+
+    // If no rate found, return original amount
+    return amount;
+  };
+
+  // Export to CSV function
+  const exportToCSV = () => {
+    try {
+      // Create CSV headers matching the template
+      const headers = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Tag', 'Payment Method'];
+      
+      // Process expense data
+      const csvData = expenses.map(expense => {
+        const convertedAmount = convertToBDT(parseFloat(expense.amount), 'BDT'); // Assuming BDT for now, but this handles conversion
+        return [
+          expense.date,
+          expense.type,
+          expense.details,
+          convertedAmount.toString(),
+          expense.tag,
+          expense.paymentMethod
+        ];
+      });
+
+      // Combine headers and data
+      const csvContent = [headers, ...csvData]
+        .map(row => row.map(field => `"${field}"`).join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `expenses-export-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Success",
+        description: "Expenses exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export expenses",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEdit = (expense: Expense) => {
     setEditingId(expense.id);
     setEditData(expense);
@@ -116,9 +203,20 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>All Entries</CardTitle>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Show:</span>
-            <Select
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={exportToCSV}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              data-testid="button-export"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground">Show:</span>
+              <Select
               value={perPage.toString()}
               onValueChange={(value) => {
                 setPerPage(parseInt(value));
@@ -134,6 +232,7 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                 <SelectItem value="50">50</SelectItem>
               </SelectContent>
             </Select>
+            </div>
           </div>
         </div>
       </CardHeader>
