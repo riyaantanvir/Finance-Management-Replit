@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter } from "lucide-react";
+import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter, Clock } from "lucide-react";
 import { Expense } from "@shared/schema";
 import ExpenseFilters from "@/components/expense/expense-filters";
 
@@ -26,6 +26,16 @@ export default function Dashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Build query params based on filters
   const queryParams = useMemo(() => {
@@ -201,7 +211,15 @@ export default function Dashboard() {
             }
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md" data-testid="current-time">
+            <Clock className="h-4 w-4" />
+            {currentTime.toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
+          </div>
           <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
             {filteredExpenses.length} {filteredExpenses.length === 1 ? 'transaction' : 'transactions'}
           </div>
