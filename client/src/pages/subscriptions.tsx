@@ -95,7 +95,7 @@ export default function SubscriptionsPage() {
 
   // Create mutation
   const createSubscriptionMutation = useMutation({
-    mutationFn: (data: InsertSubscription) => apiRequest("/api/subscriptions", "POST", data),
+    mutationFn: (data: InsertSubscription) => apiRequest("POST", "/api/subscriptions", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
       setIsCreateModalOpen(false);
@@ -117,7 +117,7 @@ export default function SubscriptionsPage() {
   // Update mutation
   const updateSubscriptionMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertSubscription> }) =>
-      apiRequest(`/api/subscriptions/${id}`, "PUT", data),
+      apiRequest("PUT", `/api/subscriptions/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
       setEditingSubscription(null);
@@ -138,7 +138,7 @@ export default function SubscriptionsPage() {
 
   // Delete mutation
   const deleteSubscriptionMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/subscriptions/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/subscriptions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
       toast({
@@ -157,7 +157,7 @@ export default function SubscriptionsPage() {
 
   // Mark paid mutation
   const markPaidMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/subscriptions/${id}/mark-paid`, "POST"),
+    mutationFn: (id: string) => apiRequest("POST", `/api/subscriptions/${id}/mark-paid`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/subscriptions"] });
       toast({
@@ -417,10 +417,19 @@ export default function SubscriptionsPage() {
                 />
 
                 <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsCreateModalOpen(false)}
+                    data-testid="button-cancel-create"
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createSubscriptionMutation.isPending}>
+                  <Button 
+                    type="submit" 
+                    disabled={createSubscriptionMutation.isPending}
+                    data-testid="button-submit-create"
+                  >
                     {createSubscriptionMutation.isPending ? "Creating..." : "Create Subscription"}
                   </Button>
                 </div>
@@ -708,10 +717,19 @@ export default function SubscriptionsPage() {
               />
 
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setEditingSubscription(null)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setEditingSubscription(null)}
+                  data-testid="button-cancel-edit"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={updateSubscriptionMutation.isPending}>
+                <Button 
+                  type="submit" 
+                  disabled={updateSubscriptionMutation.isPending}
+                  data-testid="button-submit-edit"
+                >
                   {updateSubscriptionMutation.isPending ? "Updating..." : "Update Subscription"}
                 </Button>
               </div>
