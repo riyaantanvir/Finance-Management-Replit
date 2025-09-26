@@ -14,6 +14,9 @@ export const projectStatusEnum = pgEnum("project_status", ["active", "closed"]);
 export const categoryKindEnum = pgEnum("category_kind", ["cost", "income"]);
 export const transactionDirectionEnum = pgEnum("transaction_direction", ["income", "cost"]);
 
+// Enums for Subscription Management
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "paused"]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -108,6 +111,21 @@ export const settingsFinance = pgTable("settings_finance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   baseCurrency: text("base_currency").notNull().default("BDT"),
   allowNegativeBalances: boolean("allow_negative_balances").notNull().default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Subscription Management Tables
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
+  nextBillDate: text("next_bill_date").notNull(),
+  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  cardLast4: varchar("card_last4", { length: 4 }),
+  status: subscriptionStatusEnum("status").notNull().default("active"),
+  alertEnabled: boolean("alert_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -234,6 +252,13 @@ export const insertInvPayoutSchema = createInsertSchema(invPayouts).omit({
   createdAt: true,
 });
 
+// Subscription Management Schemas
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
@@ -244,6 +269,9 @@ export const updateSettingsFinanceSchema = insertSettingsFinanceSchema.partial()
 // Investment Management Update Schemas
 export const updateInvProjectSchema = insertInvProjectSchema.partial();
 export const updateInvTxSchema = insertInvTxSchema.partial();
+
+// Subscription Management Update Schemas
+export const updateSubscriptionSchema = insertSubscriptionSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -288,3 +316,8 @@ export type InvTx = typeof invTx.$inferSelect;
 export type UpdateInvTx = z.infer<typeof updateInvTxSchema>;
 export type InsertInvPayout = z.infer<typeof insertInvPayoutSchema>;
 export type InvPayout = typeof invPayouts.$inferSelect;
+
+// Subscription Management Types
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type UpdateSubscription = z.infer<typeof updateSubscriptionSchema>;
