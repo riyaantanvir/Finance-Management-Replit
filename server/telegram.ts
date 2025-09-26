@@ -1,4 +1,5 @@
 import { storage } from './storage';
+import { TelegramSettings } from '@shared/schema';
 
 export class TelegramService {
   private botToken: string;
@@ -13,20 +14,36 @@ export class TelegramService {
     }
   }
 
+  // Get current telegram settings from database
+  private async getTelegramSettings(): Promise<TelegramSettings | null> {
+    try {
+      const settings = await storage.getTelegramSettings();
+      return settings || null;
+    } catch (error) {
+      console.error('Failed to get telegram settings:', error);
+      return null;
+    }
+  }
+
   async sendMessage(text: string): Promise<boolean> {
-    if (!this.botToken || !this.chatId) {
+    // Try to get settings from database first, fallback to env vars
+    const settings = await this.getTelegramSettings();
+    const botToken = settings?.botToken || this.botToken;
+    const chatId = settings?.chatId || this.chatId;
+
+    if (!botToken || !chatId) {
       console.warn('Telegram not configured, skipping message:', text);
       return false;
     }
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${this.botToken}/sendMessage`, {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: this.chatId,
+          chat_id: chatId,
           text: text,
           parse_mode: 'Markdown'
         }),
@@ -76,6 +93,85 @@ export class TelegramService {
       }
     } catch (error) {
       console.error('Failed to check subscription alerts:', error);
+    }
+  }
+
+  // Generate and send daily report
+  async sendDailyReport(): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const expenses = await storage.getFilteredExpenses({
+        startDate: today,
+        endDate: today
+      });
+
+      if (expenses.length === 0) {
+        const message = '📊 *Daily Report*\n\nNo transactions recorded today.';
+        return await this.sendMessage(message);
+      }
+
+      // Calculate totals
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      const transactionsList: string[] = [];
+
+      expenses.forEach(expense => {
+        const amount = parseFloat(expense.amount);
+        if (expense.type === 'income') {
+          totalIncome += amount;
+          transactionsList.push(`+ ${expense.details}: ৳${expense.amount}`);
+        } else if (expense.type === 'expense') {
+          totalExpenses += amount;
+          transactionsList.push(`- ${expense.details}: ৳${expense.amount}`);
+        }
+      });
+
+      const netBalance = totalIncome - totalExpenses;
+      const transactionCount = expenses.length;
+
+      // Build message
+      let message = `📊 *Daily Report*\n\n` +
+        `💰 *Total Income:* ৳${totalIncome.toFixed(2)}\n` +
+        `💸 *Total Expenses:* ৳${totalExpenses.toFixed(2)}\n` +
+        `📈 *Net Balance:* ৳${netBalance.toFixed(2)}\n` +
+        `📋 *Today's Transactions:* ${transactionCount} Transaction(s)\n\n`;
+
+      if (transactionsList.length > 0) {
+        message += '*Transaction Details:*\n' + transactionsList.join('\n');
+      }
+
+      return await this.sendMessage(message);
+    } catch (error) {
+      console.error('Failed to send daily report:', error);
+      return false;
+    }
+  }
+
+  // Check if it's time to send daily report
+  async checkDailyReport(): Promise<void> {
+    try {
+      const settings = await this.getTelegramSettings();
+      if (!settings || !settings.botToken || !settings.chatId) {
+        console.log('Telegram not configured, skipping daily report');
+        return;
+      }
+
+      const now = new Date();
+      const dhakaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' }));
+      const currentTime = dhakaNow.getHours().toString().padStart(2, '0') + ':' + dhakaNow.getMinutes().toString().padStart(2, '0');
+      const reportTime = settings.reportTime || '21:00';
+
+      if (currentTime === reportTime) {
+        console.log(`Sending daily report at ${currentTime}`);
+        const success = await this.sendDailyReport();
+        if (success) {
+          console.log('Daily report sent successfully');
+        } else {
+          console.error('Failed to send daily report');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check daily report:', error);
     }
   }
 }
