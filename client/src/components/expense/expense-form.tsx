@@ -145,7 +145,7 @@ export default function ExpenseForm() {
                   <SelectValue placeholder="Select Tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tags.map((tag) => (
+                  {tags.filter(tag => tag.name && tag.name.trim() !== '').map((tag) => (
                     <SelectItem key={tag.id} value={tag.name}>
                       {tag.name}
                     </SelectItem>
@@ -166,7 +166,7 @@ export default function ExpenseForm() {
                   <SelectValue placeholder="Select Payment Method" />
                 </SelectTrigger>
                 <SelectContent>
-                  {paymentMethods.map((method) => (
+                  {paymentMethods.filter(method => method.name && method.name.trim() !== '').map((method) => (
                     <SelectItem key={method.id} value={method.name}>
                       {method.name}
                     </SelectItem>
