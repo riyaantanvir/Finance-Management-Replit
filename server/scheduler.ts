@@ -3,6 +3,7 @@ import { telegramService } from './telegram';
 class Scheduler {
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private lastReportDate = '';
 
   start(): void {
     if (this.isRunning) {
@@ -13,12 +14,12 @@ class Scheduler {
     this.isRunning = true;
     console.log('Starting subscription alert scheduler...');
     
-    // Check every hour for alerts and daily reports
-    // In production, you might want to check less frequently
+    // Check every 5 minutes for alerts and daily reports
+    // More frequent checking ensures we don't miss the target times
     this.intervalId = setInterval(async () => {
       await this.checkForAlerts();
       await this.checkForDailyReports();
-    }, 60 * 60 * 1000); // 1 hour
+    }, 5 * 60 * 1000); // 5 minutes
 
     // Run initial check
     this.checkForAlerts();
@@ -60,8 +61,21 @@ class Scheduler {
 
   private async checkForDailyReports(): Promise<void> {
     try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      // Only check once per day to avoid duplicate reports
+      if (this.lastReportDate === today) {
+        return;
+      }
+      
       // Let the telegram service handle the time checking and report generation
-      await telegramService.checkDailyReport();
+      const reportSent = await telegramService.checkDailyReport();
+      
+      // If report was sent, update the last report date
+      if (reportSent) {
+        this.lastReportDate = today;
+        console.log(`Daily report sent successfully for ${today}`);
+      }
     } catch (error) {
       console.error('Error checking for daily reports:', error);
     }

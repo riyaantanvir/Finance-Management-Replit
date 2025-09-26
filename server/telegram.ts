@@ -99,10 +99,8 @@ export class TelegramService {
   // Generate and send daily report
   async sendDailyReport(): Promise<boolean> {
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       const expenses = await storage.getFilteredExpenses({
-        startDate: today,
-        endDate: today
+        dateRange: 'today'
       });
 
       if (expenses.length === 0) {
@@ -166,30 +164,41 @@ export class TelegramService {
   }
 
   // Check if it's time to send daily report
-  async checkDailyReport(): Promise<void> {
+  async checkDailyReport(): Promise<boolean> {
     try {
       const settings = await this.getTelegramSettings();
       if (!settings || !settings.botToken || !settings.chatId) {
         console.log('Telegram not configured, skipping daily report');
-        return;
+        return false;
       }
 
       const now = new Date();
       const dhakaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dhaka' }));
-      const currentTime = dhakaNow.getHours().toString().padStart(2, '0') + ':' + dhakaNow.getMinutes().toString().padStart(2, '0');
+      const currentHour = dhakaNow.getHours();
+      const currentMinute = dhakaNow.getMinutes();
+      const currentTotalMinutes = currentHour * 60 + currentMinute;
+      
       const reportTime = settings.reportTime || '21:00';
+      const [reportHour, reportMinuteStr] = reportTime.split(':');
+      const reportTotalMinutes = parseInt(reportHour) * 60 + parseInt(reportMinuteStr);
 
-      if (currentTime === reportTime) {
-        console.log(`Sending daily report at ${currentTime}`);
+      // Check if we're within 5 minutes after the target time (to handle scheduler intervals)
+      if (currentTotalMinutes >= reportTotalMinutes && currentTotalMinutes < reportTotalMinutes + 5) {
+        console.log(`Sending daily report at ${currentHour}:${currentMinute.toString().padStart(2, '0')} (target: ${reportTime})`);
         const success = await this.sendDailyReport();
         if (success) {
           console.log('Daily report sent successfully');
+          return true;
         } else {
           console.error('Failed to send daily report');
+          return false;
         }
       }
+      
+      return false;
     } catch (error) {
       console.error('Failed to check daily report:', error);
+      return false;
     }
   }
 }
