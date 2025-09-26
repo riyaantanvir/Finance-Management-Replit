@@ -13,14 +13,16 @@ class Scheduler {
     this.isRunning = true;
     console.log('Starting subscription alert scheduler...');
     
-    // Check every hour for alerts (more frequent checking for development)
+    // Check every hour for alerts and daily reports
     // In production, you might want to check less frequently
     this.intervalId = setInterval(async () => {
       await this.checkForAlerts();
+      await this.checkForDailyReports();
     }, 60 * 60 * 1000); // 1 hour
 
     // Run initial check
     this.checkForAlerts();
+    this.checkForDailyReports();
   }
 
   stop(): void {
@@ -53,6 +55,15 @@ class Scheduler {
     if (currentMinutes >= targetMinutes && currentMinutes < targetMinutes + 60) {
       console.log(`Running subscription alerts check at ${dhakaTime} Dhaka time`);
       await telegramService.checkSubscriptionAlerts();
+    }
+  }
+
+  private async checkForDailyReports(): Promise<void> {
+    try {
+      // Let the telegram service handle the time checking and report generation
+      await telegramService.checkDailyReport();
+    } catch (error) {
+      console.error('Error checking for daily reports:', error);
     }
   }
 
