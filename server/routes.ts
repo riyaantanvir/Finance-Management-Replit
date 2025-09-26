@@ -25,7 +25,9 @@ import {
   updateInvTxSchema,
   insertInvPayoutSchema,
   insertSubscriptionSchema,
-  updateSubscriptionSchema
+  updateSubscriptionSchema,
+  insertTelegramSettingsSchema,
+  updateTelegramSettingsSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1221,6 +1223,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Mark paid error:', error);
       res.status(500).json({ message: "Failed to mark subscription as paid" });
+    }
+  });
+
+  // Telegram Settings routes
+  app.get("/api/telegram-settings", async (req, res) => {
+    try {
+      const settings = await storage.getTelegramSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch Telegram settings" });
+    }
+  });
+
+  app.post("/api/telegram-settings", async (req, res) => {
+    try {
+      const settingsData = insertTelegramSettingsSchema.parse(req.body);
+      const settings = await storage.createTelegramSettings(settingsData);
+      res.status(201).json(settings);
+    } catch (error) {
+      console.error('Create telegram settings error:', error);
+      res.status(500).json({ message: "Failed to create Telegram settings" });
+    }
+  });
+
+  app.put("/api/telegram-settings/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const settingsData = updateTelegramSettingsSchema.parse(req.body);
+      const settings = await storage.updateTelegramSettings(id, settingsData);
+      
+      if (!settings) {
+        return res.status(404).json({ message: "Telegram settings not found" });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error('Update telegram settings error:', error);
+      res.status(500).json({ message: "Failed to update Telegram settings" });
+    }
+  });
+
+  app.post("/api/telegram-settings/test", async (req, res) => {
+    try {
+      const { botToken, chatId } = req.body;
+      
+      if (!botToken || !chatId) {
+        return res.status(400).json({ message: "Bot token and chat ID are required" });
+      }
+      
+      const isConnected = await storage.testTelegramConnection(botToken, chatId);
+      res.json({ connected: isConnected });
+    } catch (error) {
+      console.error('Test telegram connection error:', error);
+      res.status(500).json({ message: "Failed to test Telegram connection" });
     }
   });
 
