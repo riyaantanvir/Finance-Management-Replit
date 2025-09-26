@@ -27,6 +27,10 @@ export const users = pgTable("users", {
   dashboardAccess: boolean("dashboard_access").default(true),
   expenseEntryAccess: boolean("expense_entry_access").default(true),
   adminPanelAccess: boolean("admin_panel_access").default(false),
+  advantixAgencyAccess: boolean("advantix_agency_access").default(false),
+  investmentManagementAccess: boolean("investment_management_access").default(false),
+  fundManagementAccess: boolean("fund_management_access").default(false),
+  subscriptionsAccess: boolean("subscriptions_access").default(false),
 });
 
 export const tags = pgTable("tags", {
