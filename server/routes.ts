@@ -23,7 +23,9 @@ import {
   insertInvCategorySchema,
   insertInvTxSchema,
   updateInvTxSchema,
-  insertInvPayoutSchema
+  insertInvPayoutSchema,
+  insertSubscriptionSchema,
+  updateSubscriptionSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -1045,6 +1047,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Investment payout deletion error:', error);
       res.status(500).json({ message: "Failed to delete investment payout" });
+    }
+  });
+
+  // Subscription routes
+  app.get("/api/subscriptions", async (req, res) => {
+    try {
+      const subscriptions = await storage.getAllSubscriptions();
+      res.json(subscriptions);
+    } catch (error) {
+      console.error('Subscription fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch subscriptions" });
+    }
+  });
+
+  app.get("/api/subscriptions/active", async (req, res) => {
+    try {
+      const subscriptions = await storage.getActiveSubscriptions();
+      res.json(subscriptions);
+    } catch (error) {
+      console.error('Active subscription fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch active subscriptions" });
+    }
+  });
+
+  app.get("/api/subscriptions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const subscription = await storage.getSubscription(id);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      res.json(subscription);
+    } catch (error) {
+      console.error('Subscription fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch subscription" });
+    }
+  });
+
+  app.post("/api/subscriptions", async (req, res) => {
+    try {
+      const subscriptionData = insertSubscriptionSchema.parse(req.body);
+      
+      // Validate that the account exists
+      const account = await storage.getAccount(subscriptionData.accountId);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      const subscription = await storage.createSubscription(subscriptionData);
+      res.status(201).json(subscription);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Subscription creation error:', error);
+        res.status(500).json({ message: "Failed to create subscription" });
+      }
+    }
+  });
+
+  app.put("/api/subscriptions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const subscriptionData = updateSubscriptionSchema.parse(req.body);
+      
+      // If accountId is being updated, validate that the account exists
+      if (subscriptionData.accountId) {
+        const account = await storage.getAccount(subscriptionData.accountId);
+        if (!account) {
+          return res.status(404).json({ message: "Account not found" });
+        }
+      }
+
+      const subscription = await storage.updateSubscription(id, subscriptionData);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      res.json(subscription);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        console.error('Subscription update error:', error);
+        res.status(500).json({ message: "Failed to update subscription" });
+      }
+    }
+  });
+
+  app.delete("/api/subscriptions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSubscription(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      res.json({ message: "Subscription deleted successfully" });
+    } catch (error) {
+      console.error('Subscription deletion error:', error);
+      res.status(500).json({ message: "Failed to delete subscription" });
+    }
+  });
+
+  app.post("/api/subscriptions/:id/mark-paid", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Get subscription details
+      const subscription = await storage.getSubscription(id);
+      if (!subscription) {
+        return res.status(404).json({ message: "Subscription not found" });
+      }
+
+      // Validate account exists
+      const account = await storage.getAccount(subscription.accountId);
+      if (!account) {
+        return res.status(404).json({ message: "Account not found" });
+      }
+
+      // Get exchange rate for currency conversion
+      let fxRate = "1";
+      let amountBase = subscription.amount;
+      
+      if (subscription.currency !== account.currency) {
+        const exchangeRate = await storage.getExchangeRate(subscription.currency, account.currency);
+        if (exchangeRate) {
+          fxRate = exchangeRate.rate;
+          const rate = parseFloat(fxRate);
+          const amount = parseFloat(subscription.amount);
+          amountBase = (amount * rate).toFixed(2);
+        } else {
+          // Fallback: If no exchange rate found, use 1:1 conversion and log a warning
+          console.warn(`No exchange rate found for ${subscription.currency} to ${account.currency}, using 1:1 conversion`);
+          fxRate = "1";
+          amountBase = subscription.amount;
+        }
+      }
+
+      // Create ledger entry as an expense
+      const ledgerData = {
+        accountId: subscription.accountId,
+        txType: 'expense' as const,
+        amount: subscription.amount,
+        currency: subscription.currency,
+        fxRate: fxRate,
+        amountBase: amountBase,
+        refType: 'subscription',
+        refId: subscription.id,
+        note: `Subscription Payment: ${subscription.name}`
+      };
+
+      await storage.createLedger(ledgerData);
+
+      // Update subscription's next bill date (+1 month)
+      const currentNextBillDate = new Date(subscription.nextBillDate);
+      const nextBillDate = new Date(currentNextBillDate);
+      nextBillDate.setMonth(nextBillDate.getMonth() + 1);
+      
+      const updatedSubscription = await storage.updateSubscription(id, {
+        nextBillDate: nextBillDate.toISOString().split('T')[0] // YYYY-MM-DD format
+      });
+
+      res.json({ 
+        message: "Subscription marked as paid successfully",
+        subscription: updatedSubscription 
+      });
+    } catch (error) {
+      console.error('Mark paid error:', error);
+      res.status(500).json({ message: "Failed to mark subscription as paid" });
     }
   });
 
