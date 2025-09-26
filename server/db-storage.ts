@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -39,7 +39,10 @@ import {
   type InsertInvPayout,
   type Subscription,
   type InsertSubscription,
-  type UpdateSubscription
+  type UpdateSubscription,
+  type TelegramSettings,
+  type InsertTelegramSettings,
+  type UpdateTelegramSettings
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -1237,5 +1240,50 @@ export class DatabaseStorage implements IStorage {
       ),
       orderBy: [subscriptions.name]
     });
+  }
+
+  // Telegram Settings methods
+  async getTelegramSettings(): Promise<TelegramSettings | undefined> {
+    const result = await db.query.telegramSettings.findFirst();
+    return result;
+  }
+
+  async createTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings> {
+    const [result] = await db.insert(telegramSettings).values(settings).returning();
+    return result;
+  }
+
+  async updateTelegramSettings(id: string, settings: UpdateTelegramSettings): Promise<TelegramSettings | undefined> {
+    const [result] = await db.update(telegramSettings)
+      .set({ ...settings, updatedAt: new Date() })
+      .where(eq(telegramSettings.id, id))
+      .returning();
+    return result;
+  }
+
+  async testTelegramConnection(botToken: string, chatId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+      if (!response.ok) {
+        return false;
+      }
+
+      // Test sending a message to the chat
+      const testResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: '🔧 Telegram connection test successful!',
+        }),
+      });
+
+      return testResponse.ok;
+    } catch (error) {
+      console.error('Telegram connection test failed:', error);
+      return false;
+    }
   }
 }

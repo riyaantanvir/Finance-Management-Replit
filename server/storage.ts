@@ -36,7 +36,10 @@ import {
   type InsertInvPayout,
   type Subscription,
   type InsertSubscription,
-  type UpdateSubscription
+  type UpdateSubscription,
+  type TelegramSettings,
+  type InsertTelegramSettings,
+  type UpdateTelegramSettings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -164,6 +167,12 @@ export interface IStorage {
   getAllSubscriptions(): Promise<Subscription[]>;
   getActiveSubscriptions(): Promise<Subscription[]>;
   getSubscriptionsDueForAlert(daysFromNow: number): Promise<Subscription[]>;
+
+  // Telegram Settings methods
+  getTelegramSettings(): Promise<TelegramSettings | undefined>;
+  createTelegramSettings(settings: InsertTelegramSettings): Promise<TelegramSettings>;
+  updateTelegramSettings(id: string, settings: UpdateTelegramSettings): Promise<TelegramSettings | undefined>;
+  testTelegramConnection(botToken: string, chatId: string): Promise<boolean>;
 }
 
 export class MemStorage {
