@@ -28,10 +28,11 @@ export function TelegramManagement() {
 
   // Test connection mutation
   const testConnectionMutation = useMutation({
-    mutationFn: (data: { botToken: string; chatId: string }) =>
-      apiRequest("POST", "/api/telegram-settings/test", data),
-    onSuccess: (response) => {
-      const result = response as { connected: boolean };
+    mutationFn: async (data: { botToken: string; chatId: string }) => {
+      const response = await apiRequest("POST", "/api/telegram-settings/test", data);
+      return await response.json();
+    },
+    onSuccess: (result: { connected: boolean }) => {
       if (result.connected) {
         toast({
           title: "Connection Successful",
