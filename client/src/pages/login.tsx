@@ -28,6 +28,12 @@ export default function Login({ onLogin }: LoginProps) {
       });
 
       const data = await response.json();
+      
+      // Store sessionId for work reports authentication
+      if (data.sessionId) {
+        localStorage.setItem('sessionId', data.sessionId);
+      }
+      
       const authState = { user: data.user, isAuthenticated: true };
       setAuthState(data.user);
       onLogin(authState);
