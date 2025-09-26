@@ -27,9 +27,9 @@ export default function ExpenseFilters({ filters, onFilterChange, onDateRangeCha
   const [startDate, setStartDate] = useState(filters.startDate || '');
   const [endDate, setEndDate] = useState(filters.endDate || '');
 
-  // Get unique tags and payment methods from expenses data
-  const uniqueTags = Array.from(new Set(expenses.map(expense => expense.tag))).sort();
-  const uniquePaymentMethods = Array.from(new Set(expenses.map(expense => expense.paymentMethod))).sort();
+  // Get unique tags and payment methods from expenses data, filtering out empty values
+  const uniqueTags = Array.from(new Set(expenses.map(expense => expense.tag).filter(tag => tag && tag.trim() !== ''))).sort();
+  const uniquePaymentMethods = Array.from(new Set(expenses.map(expense => expense.paymentMethod).filter(method => method && method.trim() !== ''))).sort();
 
   const handleCustomDateApply = () => {
     if (startDate && endDate && onDateRangeChange) {
