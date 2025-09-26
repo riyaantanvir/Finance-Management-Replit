@@ -79,6 +79,27 @@ export function TelegramManagement() {
     },
   });
 
+  // Test work report notification mutation
+  const testWorkReportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/telegram-settings/test-work-report", {});
+      return await response.json();
+    },
+    onSuccess: (result: { message: string; success: boolean }) => {
+      toast({
+        title: "Test Notification Sent",
+        description: result.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Test Failed",
+        description: error.message || "Failed to send test work report notification",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create settings mutation
   const createSettingsMutation = useMutation({
     mutationFn: (data: InsertTelegramSettings) =>
@@ -171,6 +192,18 @@ export function TelegramManagement() {
       return;
     }
     sendReportMutation.mutate();
+  };
+
+  const handleTestWorkReport = () => {
+    if (!isConnected) {
+      toast({
+        title: "Configuration Required",
+        description: "Please configure and save Telegram settings first",
+        variant: "destructive",
+      });
+      return;
+    }
+    testWorkReportMutation.mutate();
   };
 
   const isConnected = telegramSettings?.botToken && telegramSettings?.chatId;
@@ -333,6 +366,14 @@ export function TelegramManagement() {
                   data-testid="button-test-alert"
                 >
                   {testConnectionMutation.isPending ? "Testing..." : "Send Test Alert"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleTestWorkReport}
+                  disabled={!isConnected || testWorkReportMutation.isPending}
+                  data-testid="button-test-work-report"
+                >
+                  {testWorkReportMutation.isPending ? "Testing..." : "Test Work Report"}
                 </Button>
               </div>
             </div>

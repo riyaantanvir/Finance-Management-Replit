@@ -1448,6 +1448,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/telegram-settings/test-work-report", async (req, res) => {
+    try {
+      const settings = await storage.getTelegramSettings();
+      
+      if (!settings || !settings.botToken || !settings.chatId) {
+        return res.status(400).json({ message: "Telegram not configured. Please configure bot token and chat ID first." });
+      }
+      
+      // Import telegramService and send test work report notification
+      const { telegramService } = await import('./telegram');
+      const success = await telegramService.sendWorkReportNotification(
+        "Test User",
+        "Test work report notification - This is a sample notification to verify the system is working correctly.",
+        "8.5",
+        new Date().toLocaleDateString()
+      );
+      
+      if (success) {
+        res.json({ message: "Test work report notification sent successfully", success: true });
+      } else {
+        res.status(500).json({ message: "Failed to send test work report notification. Check if work report notifications are enabled in settings.", success: false });
+      }
+    } catch (error) {
+      console.error('Send test work report notification error:', error);
+      res.status(500).json({ message: "Failed to send test work report notification" });
+    }
+  });
+
   // Work Reports routes
   app.get("/api/work-reports", requireWorkReportsAuth, async (req: any, res) => {
     try {
