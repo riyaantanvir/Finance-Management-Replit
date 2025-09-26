@@ -114,6 +114,15 @@ export const settingsFinance = pgTable("settings_finance", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const telegramSettings = pgTable("telegram_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  botToken: text("bot_token"),
+  chatId: text("chat_id"),
+  alertTime: text("alert_time").notNull().default("09:00"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Subscription Management Tables
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -230,6 +239,12 @@ export const insertSettingsFinanceSchema = createInsertSchema(settingsFinance).o
   updatedAt: true,
 });
 
+export const insertTelegramSettingsSchema = createInsertSchema(telegramSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Investment Management Schemas
 export const insertInvProjectSchema = createInsertSchema(invProjects).omit({
   id: true,
@@ -265,6 +280,7 @@ export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
 export const updateAccountSchema = insertAccountSchema.partial();
 export const updateExchangeRateSchema = insertExchangeRateSchema.partial();
 export const updateSettingsFinanceSchema = insertSettingsFinanceSchema.partial();
+export const updateTelegramSettingsSchema = insertTelegramSettingsSchema.partial();
 
 // Investment Management Update Schemas
 export const updateInvProjectSchema = insertInvProjectSchema.partial();
@@ -304,6 +320,9 @@ export type UpdateExchangeRate = z.infer<typeof updateExchangeRateSchema>;
 export type InsertSettingsFinance = z.infer<typeof insertSettingsFinanceSchema>;
 export type SettingsFinance = typeof settingsFinance.$inferSelect;
 export type UpdateSettingsFinance = z.infer<typeof updateSettingsFinanceSchema>;
+export type InsertTelegramSettings = z.infer<typeof insertTelegramSettingsSchema>;
+export type TelegramSettings = typeof telegramSettings.$inferSelect;
+export type UpdateTelegramSettings = z.infer<typeof updateTelegramSettingsSchema>;
 
 // Investment Management Types
 export type InsertInvProject = z.infer<typeof insertInvProjectSchema>;
