@@ -99,9 +99,23 @@ export class TelegramService {
   // Generate and send daily report
   async sendDailyReport(): Promise<boolean> {
     try {
+      console.log('=== DEBUG: Daily Report Generation ===');
+      const today = new Date().toISOString().split('T')[0];
+      console.log('Today\'s date:', today);
+      
+      // First, let's get ALL expenses to see what we have
+      const allExpenses = await storage.getAllExpenses();
+      console.log('Total expenses in database:', allExpenses.length);
+      if (allExpenses.length > 0) {
+        console.log('Sample expense dates:', allExpenses.slice(0, 3).map(e => ({ date: e.date, details: e.details })));
+      }
+      
+      // Now get filtered expenses
       const expenses = await storage.getFilteredExpenses({
         dateRange: 'today'
       });
+      console.log('Filtered expenses for today:', expenses.length);
+      console.log('=== END DEBUG ===');
 
       if (expenses.length === 0) {
         const message = '📊 *Daily Report*\n\nNo transactions recorded today.';
