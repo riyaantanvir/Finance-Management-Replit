@@ -73,6 +73,23 @@ export class TelegramService {
     return this.sendMessage(message);
   }
 
+  async sendWorkReportNotification(username: string, taskDetails: string, hours: string, date: string): Promise<boolean> {
+    // Check if work report notifications are enabled in settings
+    const settings = await this.getTelegramSettings();
+    if (!settings?.workReportNotification) {
+      return false; // Notifications disabled
+    }
+
+    const message = `📋 *New Work Report Submitted*\n\n` +
+      `👤 *User:* ${username}\n` +
+      `📅 *Date:* ${date}\n` +
+      `⏰ *Hours:* ${hours}h\n` +
+      `📝 *Task:* ${taskDetails}\n\n` +
+      `A new work report has been submitted for review.`;
+
+    return this.sendMessage(message);
+  }
+
   async checkSubscriptionAlerts(): Promise<void> {
     try {
       // Get subscriptions due in 2 days for alerts

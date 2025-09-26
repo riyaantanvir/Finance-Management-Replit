@@ -127,6 +127,7 @@ export const telegramSettings = pgTable("telegram_settings", {
   chatId: text("chat_id"),
   alertTime: text("alert_time").notNull().default("09:00"),
   reportTime: text("report_time").notNull().default("21:00"),
+  workReportNotification: boolean("work_report_notification").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

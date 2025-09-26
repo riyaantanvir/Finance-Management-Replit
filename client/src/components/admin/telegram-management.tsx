@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { CheckCircle, XCircle, Send, Clock, BarChart3 } from "lucide-react";
@@ -16,6 +17,7 @@ export function TelegramManagement() {
     chatId: "",
     alertTime: "09:00",
     reportTime: "21:00",
+    workReportNotification: true,
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -126,6 +128,7 @@ export function TelegramManagement() {
         chatId: telegramSettings.chatId || "",
         alertTime: telegramSettings.alertTime,
         reportTime: telegramSettings.reportTime || "21:00",
+        workReportNotification: telegramSettings.workReportNotification ?? true,
       });
     }
     setIsEditing(true);
@@ -285,6 +288,23 @@ export function TelegramManagement() {
                     Time when daily reports will be sent (Asia/Dhaka timezone)
                   </p>
                 </div>
+              </div>
+
+              {/* Work Report Notification Toggle */}
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50 dark:bg-slate-900">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Work Report Notifications</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Send Telegram notifications when new work reports are submitted
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.workReportNotification}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, workReportNotification: checked }))
+                  }
+                  data-testid="switch-work-report-notification"
+                />
               </div>
 
               <div className="flex gap-2">

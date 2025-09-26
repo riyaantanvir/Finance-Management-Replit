@@ -1513,6 +1513,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const workReport = await storage.createWorkReport(validatedData);
+      
+      // Send Telegram notification for work report
+      try {
+        const { telegramService } = await import('./telegram');
+        const user = await storage.getUser(workReport.userId);
+        if (user) {
+          await telegramService.sendWorkReportNotification(
+            user.username,
+            workReport.taskDetails,
+            workReport.hours,
+            workReport.date
+          );
+        }
+      } catch (notificationError) {
+        console.error('Failed to send work report notification:', notificationError);
+        // Don't fail the entire request if notification fails
+      }
+      
       res.status(201).json(workReport);
     } catch (error) {
       if (error instanceof z.ZodError) {
