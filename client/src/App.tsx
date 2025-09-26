@@ -8,6 +8,7 @@ import { getAuthState, AuthState } from "./lib/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
+import Welcome from "@/pages/welcome";
 import ExpenseEntry from "@/pages/expense-entry";
 import AdminPanel from "@/pages/admin-panel";
 import FundsOverviewPage from "@/pages/funds-overview";
@@ -52,7 +53,7 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
         />
         <main className="min-h-[calc(100vh-4rem)]">
           <Switch>
-            <Route path="/" component={Dashboard} />
+            <Route path="/" component={Welcome} />
             <Route path="/dashboard" component={Dashboard} />
             <Route path="/expense-entry" component={ExpenseEntry} />
             <Route path="/admin-panel" component={AdminPanel} />
