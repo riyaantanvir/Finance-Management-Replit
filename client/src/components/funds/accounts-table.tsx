@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Account, UpdateAccount, PaymentMethod } from "@shared/schema";
 import { Input } from "@/components/ui/input";
+import AccountsCSV from "./accounts-csv";
 
 interface AccountsTableProps {
   accounts: Account[];
@@ -256,6 +257,11 @@ export default function AccountsTable({ accounts, isLoading }: AccountsTableProp
         </div>
       </CardHeader>
       <CardContent>
+        {/* CSV Import/Export */}
+        <div className="mb-6">
+          <AccountsCSV accounts={accounts} />
+        </div>
+
         {/* Add Account Form */}
         {showAddForm && (
           <div className="mb-6 p-4 border rounded-lg bg-muted/50">

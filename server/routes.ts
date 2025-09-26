@@ -481,6 +481,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk import accounts from CSV
+  app.post("/api/accounts/bulk", async (req, res) => {
+    try {
+      const { accounts } = req.body;
+      
+      if (!Array.isArray(accounts) || accounts.length === 0) {
+        return res.status(400).json({ message: "Invalid request: accounts array is required" });
+      }
+
+      // Validate each account
+      const validAccounts = [];
+      const errors = [];
+
+      for (let i = 0; i < accounts.length; i++) {
+        const accountData = accounts[i];
+        try {
+          const validatedAccount = insertAccountSchema.parse(accountData);
+          validAccounts.push(validatedAccount);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            errors.push(`Account ${i + 1}: ${error.errors.map(e => e.message).join(', ')}`);
+          } else {
+            errors.push(`Account ${i + 1}: Invalid data`);
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        return res.status(400).json({ 
+          message: "Validation errors", 
+          errors 
+        });
+      }
+
+      // Create all valid accounts
+      const createdAccounts = [];
+      for (const accountData of validAccounts) {
+        try {
+          const account = await storage.createAccount(accountData);
+          createdAccounts.push(account);
+        } catch (error) {
+          console.error('Failed to create account:', error);
+          return res.status(500).json({ 
+            message: `Failed to create account: ${accountData.name}`,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.status(201).json({
+        message: `Successfully imported ${createdAccounts.length} accounts`,
+        accounts: createdAccounts
+      });
+    } catch (error) {
+      console.error('Bulk account import error:', error);
+      res.status(500).json({ 
+        message: "Failed to import accounts",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Export accounts to CSV
+  app.get("/api/accounts/export", async (req, res) => {
+    try {
+      const accounts = await storage.getAllAccounts();
+      
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=accounts_export.csv');
+      
+      // Create CSV content
+      const csvHeader = 'name,type,currency,openingBalance,paymentMethodKey,status\n';
+      const csvRows = accounts.map(account => 
+        `"${account.name}","${account.type}","${account.currency}","${account.openingBalance}","${account.paymentMethodKey || ""}","${account.status}"`
+      ).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Account export error:', error);
+      res.status(500).json({ 
+        message: "Failed to export accounts",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Fund Management - Ledger routes
   app.get("/api/ledger", async (req, res) => {
     try {
