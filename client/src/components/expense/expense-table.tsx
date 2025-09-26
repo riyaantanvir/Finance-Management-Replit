@@ -9,7 +9,7 @@ import { Edit, Trash2, Download } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Expense, ExchangeRate, SettingsFinance } from "@shared/schema";
+import { Expense, ExchangeRate, SettingsFinance, PaymentMethod } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
 interface ExpenseTableProps {
@@ -77,14 +77,18 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     initialData: { id: '', baseCurrency: 'BDT', allowNegativeBalances: true, updatedAt: null }
   });
 
+  const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
+    queryKey: ["/api/payment-methods"],
+  });
+
   // Currency conversion function
-  const convertToBDT = (amount: number, fromCurrency: string): number => {
-    const baseCurrency = 'BDT';
+  const convertToBaseCurrency = (amount: number, fromCurrency: string): number => {
+    const baseCurrency = financeSettings?.baseCurrency || 'BDT';
     if (fromCurrency === baseCurrency) {
       return amount;
     }
 
-    // Find exchange rate from fromCurrency to BDT
+    // Find exchange rate from fromCurrency to base currency
     const rate = exchangeRates.find(r => 
       r.fromCurrency === fromCurrency && r.toCurrency === baseCurrency
     );
@@ -109,17 +113,25 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
   // Export to CSV function
   const exportToCSV = () => {
     try {
-      // Create CSV headers matching the template
-      const headers = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Tag', 'Payment Method'];
+      const baseCurrency = financeSettings?.baseCurrency || 'BDT';
+      
+      // Create CSV headers matching the template  
+      const headers = ['Date', 'Type', 'Details', `Amount (${baseCurrency})`, 'Tag', 'Payment Method'];
       
       // Process expense data
       const csvData = expenses.map(expense => {
-        const convertedAmount = convertToBDT(parseFloat(expense.amount), 'BDT'); // Assuming BDT for now, but this handles conversion
+        // Get currency from payment method or default to BDT
+        const paymentMethodData = paymentMethods.find(pm => pm.name === expense.paymentMethod);
+        const expenseCurrency = paymentMethodData?.currency || 'BDT';
+        
+        // Convert amount to base currency
+        const convertedAmount = convertToBaseCurrency(parseFloat(expense.amount), expenseCurrency);
+        
         return [
           expense.date,
           expense.type,
           expense.details,
-          convertedAmount.toString(),
+          convertedAmount.toFixed(2),
           expense.tag,
           expense.paymentMethod
         ];
