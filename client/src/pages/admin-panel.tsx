@@ -5,9 +5,10 @@ import UserTable from "@/components/admin/user-table";
 import { TagsManagement } from '@/components/admin/tags-management';
 import { PaymentMethodsManagement } from '@/components/admin/payment-methods-management';
 import { ExchangeRatesManagement } from '@/components/admin/exchange-rates-management';
+import { TelegramManagement } from '@/components/admin/telegram-management';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Tags, CreditCard } from 'lucide-react';
+import { Users, Tags, CreditCard, Send } from 'lucide-react';
 
 export default function AdminPanel() {
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -22,12 +23,12 @@ export default function AdminPanel() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground">Manage users, tags, payment methods, and exchange rates</p>
+          <p className="text-muted-foreground">Manage users, tags, payment methods, exchange rates, and telegram settings</p>
         </div>
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users" data-testid="tab-users">
             <Users className="h-4 w-4 mr-2" />
             Users
@@ -39,6 +40,10 @@ export default function AdminPanel() {
           <TabsTrigger value="payment-methods" data-testid="tab-payment-methods">
             <CreditCard className="h-4 w-4 mr-2" />
             Payment Methods
+          </TabsTrigger>
+          <TabsTrigger value="telegram-management" data-testid="tab-telegram-management">
+            <Send className="h-4 w-4 mr-2" />
+            Telegram Management
           </TabsTrigger>
         </TabsList>
 
@@ -54,6 +59,10 @@ export default function AdminPanel() {
         <TabsContent value="payment-methods" className="space-y-6">
           <PaymentMethodsManagement />
           <ExchangeRatesManagement />
+        </TabsContent>
+
+        <TabsContent value="telegram-management" className="space-y-6">
+          <TelegramManagement />
         </TabsContent>
       </Tabs>
     </div>
