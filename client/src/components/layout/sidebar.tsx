@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp } from "lucide-react";
+import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
@@ -28,6 +28,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart },
     { name: "Expense Entry", href: "/expense-entry", icon: Plus },
+    { name: "Subscriptions", href: "/subscriptions", icon: CreditCard },
     { name: "Admin Panel", href: "/admin-panel", icon: Users },
   ];
 

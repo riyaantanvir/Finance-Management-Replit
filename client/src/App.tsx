@@ -21,6 +21,7 @@ import InvestmentsTransactionsPage from "@/pages/investments-transactions";
 import InvestmentsPayoutsPage from "@/pages/investments-payouts";
 import InvestmentsReportsPage from "@/pages/investments-reports";
 import InvestmentsSettingsPage from "@/pages/investments-settings";
+import SubscriptionsPage from "@/pages/subscriptions";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -65,6 +66,7 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
             <Route path="/investments/payouts" component={InvestmentsPayoutsPage} />
             <Route path="/investments/reports" component={InvestmentsReportsPage} />
             <Route path="/investments/settings" component={InvestmentsSettingsPage} />
+            <Route path="/subscriptions" component={SubscriptionsPage} />
           </Switch>
         </main>
       </div>
