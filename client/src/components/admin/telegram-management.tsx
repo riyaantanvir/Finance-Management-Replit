@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CheckCircle, XCircle, Send, Clock } from "lucide-react";
+import { CheckCircle, XCircle, Send, Clock, BarChart3 } from "lucide-react";
 import { TelegramSettings, InsertTelegramSettings, UpdateTelegramSettings } from "@shared/schema";
 
 export function TelegramManagement() {
@@ -15,6 +15,7 @@ export function TelegramManagement() {
     botToken: "",
     chatId: "",
     alertTime: "09:00",
+    reportTime: "21:00",
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -50,6 +51,27 @@ export function TelegramManagement() {
       toast({
         title: "Test Failed",
         description: error.message || "Failed to test Telegram connection",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send daily report mutation
+  const sendReportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/telegram-settings/send-report", {});
+      return await response.json();
+    },
+    onSuccess: (result: { message: string; success: boolean }) => {
+      toast({
+        title: "Report Sent",
+        description: result.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Report Failed",
+        description: error.message || "Failed to send daily report",
         variant: "destructive",
       });
     },
@@ -103,6 +125,7 @@ export function TelegramManagement() {
         botToken: telegramSettings.botToken || "",
         chatId: telegramSettings.chatId || "",
         alertTime: telegramSettings.alertTime,
+        reportTime: telegramSettings.reportTime || "21:00",
       });
     }
     setIsEditing(true);
@@ -133,6 +156,18 @@ export function TelegramManagement() {
       botToken: formData.botToken,
       chatId: formData.chatId,
     });
+  };
+
+  const handleSendReport = () => {
+    if (!isConnected) {
+      toast({
+        title: "Configuration Required",
+        description: "Please configure and save Telegram settings first",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendReportMutation.mutate();
   };
 
   const isConnected = telegramSettings?.botToken && telegramSettings?.chatId;
@@ -213,23 +248,43 @@ export function TelegramManagement() {
                 </div>
               </div>
 
-              <div className="max-w-xs">
-                <Label htmlFor="alertTime" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Alert Time (24-hour format)
-                </Label>
-                <Input
-                  id="alertTime"
-                  type="time"
-                  value={formData.alertTime}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, alertTime: e.target.value }))
-                  }
-                  data-testid="input-alert-time"
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Time when subscription alerts will be sent (Asia/Dhaka timezone)
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                <div>
+                  <Label htmlFor="alertTime" className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Alert Time (24-hour format)
+                  </Label>
+                  <Input
+                    id="alertTime"
+                    type="time"
+                    value={formData.alertTime}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, alertTime: e.target.value }))
+                    }
+                    data-testid="input-alert-time"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Time when subscription alerts will be sent (Asia/Dhaka timezone)
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="reportTime" className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Daily Report Time (24-hour format)
+                  </Label>
+                  <Input
+                    id="reportTime"
+                    type="time"
+                    value={formData.reportTime}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, reportTime: e.target.value }))
+                    }
+                    data-testid="input-report-time"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Time when daily reports will be sent (Asia/Dhaka timezone)
+                  </p>
+                </div>
               </div>
 
               <div className="flex gap-2">
@@ -280,19 +335,62 @@ export function TelegramManagement() {
                   </p>
                 </div>
               </div>
-              <div className="max-w-xs p-3 border rounded">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Alert Time
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {telegramSettings.alertTime} (Asia/Dhaka timezone)
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                <div className="p-3 border rounded">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Alert Time
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {telegramSettings.alertTime} (Asia/Dhaka timezone)
+                  </p>
+                </div>
+                <div className="p-3 border rounded">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Daily Report Time
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {telegramSettings.reportTime || "21:00"} (Asia/Dhaka timezone)
+                  </p>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Daily Reports Section */}
+      {isConnected && (
+        <Card data-testid="daily-reports-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Daily Reports
+            </CardTitle>
+            <CardDescription>
+              Send today's financial summary report to Telegram
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <p className="font-medium">Today's Report</p>
+                <p className="text-sm text-muted-foreground">
+                  Get instant summary of today's income, expenses, and transactions
+                </p>
+              </div>
+              <Button
+                onClick={handleSendReport}
+                disabled={sendReportMutation.isPending}
+                data-testid="button-send-report"
+              >
+                {sendReportMutation.isPending ? "Sending..." : "Report Now"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
