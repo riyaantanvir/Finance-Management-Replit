@@ -214,6 +214,10 @@ export class MemStorage {
       dashboardAccess: true,
       expenseEntryAccess: true,
       adminPanelAccess: true,
+      advantixAgencyAccess: true,
+      investmentManagementAccess: true,
+      fundManagementAccess: true,
+      subscriptionsAccess: true,
     };
     this.users.set(adminId, adminUser);
   }
@@ -237,6 +241,10 @@ export class MemStorage {
       dashboardAccess: insertUser.dashboardAccess ?? true,
       expenseEntryAccess: insertUser.expenseEntryAccess ?? true,
       adminPanelAccess: insertUser.adminPanelAccess ?? false,
+      advantixAgencyAccess: insertUser.advantixAgencyAccess ?? false,
+      investmentManagementAccess: insertUser.investmentManagementAccess ?? false,
+      fundManagementAccess: insertUser.fundManagementAccess ?? false,
+      subscriptionsAccess: insertUser.subscriptionsAccess ?? false,
     };
     this.users.set(id, user);
     return user;
