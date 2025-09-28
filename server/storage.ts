@@ -487,4 +487,5 @@ export class MemStorage {
 
 import { DatabaseStorage } from './db-storage';
 
-export const storage = new DatabaseStorage();
+// Use MemStorage for development to avoid database connection issues
+export const storage = new MemStorage();
