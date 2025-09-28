@@ -495,5 +495,5 @@ export class MemStorage {
 
 import { DatabaseStorage } from './db-storage';
 
-// Use MemStorage for development to avoid database connection issues
-export const storage = new MemStorage();
+// Use DatabaseStorage for production with proper PostgreSQL database
+export const storage = new DatabaseStorage();
