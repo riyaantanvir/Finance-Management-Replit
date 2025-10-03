@@ -1707,16 +1707,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        res.json({ 
-          connected: true, 
-          message: "CoinGecko API connection successful",
-          data: data
-        });
+        try {
+          const data = await response.json();
+          res.json({ 
+            connected: true, 
+            message: "CoinGecko API connection successful",
+            data: data
+          });
+        } catch (jsonError) {
+          res.json({
+            connected: false,
+            message: "API returned invalid response format"
+          });
+        }
       } else {
         res.json({ 
           connected: false, 
-          message: `Failed to connect: ${response.status} ${response.statusText}`
+          message: `Failed to connect: ${response.status} - Invalid API key or request`
         });
       }
     } catch (error: any) {
@@ -1741,17 +1748,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = await fetch(`https://cryptonews-api.com/api/v1?tickers=BTC&items=1&token=${apiKey}`);
 
       if (response.ok) {
-        const data = await response.json();
-        res.json({ 
-          connected: true, 
-          message: "CryptoNews API connection successful",
-          data: data
-        });
+        try {
+          const data = await response.json();
+          res.json({ 
+            connected: true, 
+            message: "CryptoNews API connection successful",
+            data: data
+          });
+        } catch (jsonError) {
+          res.json({
+            connected: false,
+            message: "API returned invalid response format"
+          });
+        }
       } else {
         const errorText = await response.text();
         res.json({ 
           connected: false, 
-          message: `Failed to connect: ${response.status} - ${errorText}`
+          message: `Failed to connect: ${response.status} - Invalid API key or request`
         });
       }
     } catch (error: any) {

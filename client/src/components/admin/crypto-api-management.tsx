@@ -76,7 +76,8 @@ export function CryptoApiManagement() {
     mutationFn: async (apiKey: string) => {
       if (!sessionId) throw new Error("No session ID");
       const response = await apiRequest("POST", `/api/crypto/settings/test-coingecko?sessionId=${sessionId}`, { apiKey });
-      return await response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: (result) => {
       setTestStatus(prev => ({
@@ -115,7 +116,8 @@ export function CryptoApiManagement() {
     mutationFn: async (apiKey: string) => {
       if (!sessionId) throw new Error("No session ID");
       const response = await apiRequest("POST", `/api/crypto/settings/test-cryptonews?sessionId=${sessionId}`, { apiKey });
-      return await response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: (result) => {
       setTestStatus(prev => ({
@@ -154,7 +156,8 @@ export function CryptoApiManagement() {
     mutationFn: async (data: { botToken: string; chatId: string }) => {
       if (!sessionId) throw new Error("No session ID");
       const response = await apiRequest("POST", `/api/crypto/settings/test-telegram?sessionId=${sessionId}`, data);
-      return await response.json();
+      const result = await response.json();
+      return result;
     },
     onSuccess: (result) => {
       setTestStatus(prev => ({
