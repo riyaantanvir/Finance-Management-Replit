@@ -30,7 +30,10 @@ Preferred communication style: Simple, everyday language.
 The application uses Drizzle ORM with PostgreSQL schema definitions:
 
 - **Users Table**: Stores user credentials and role-based permissions (dashboard access, expense entry access, admin panel access, crypto access)
-- **Expenses Table**: Tracks financial transactions with date, type (income/expense), details, amount, tags, and payment methods
+- **Expenses Table**: Tracks financial transactions with date, type (income/expense), details, amount, hierarchical tags (subTagId), and payment methods
+- **Main Tags Table**: Top-level expense categories (e.g., "Family bazer", "Transportation") for hierarchical organization
+- **Sub-Tags Table**: Detailed subcategories under main tags (e.g., "kacha bazer", "fish bazer" under "Family bazer") with cascade delete on parent
+- **Tags Table** (Legacy): Preserved for backward compatibility during migration
 - **Work Reports Table**: Tracks time entries for Advantix Agency work with user assignments, dates, task details, hours worked, approval status, and comments
 - **Crypto API Settings Table**: Stores CoinGecko API key, CryptoNews API key, and Telegram bot credentials (bot token, chat ID)
 - **Crypto Watchlist Table**: User-specific cryptocurrency watchlist with unique constraint (userId + coinId)
@@ -174,3 +177,48 @@ All crypto routes require session authentication and `cryptoAccess` permission:
 - **Build Command**: `npm run build`
 - **Run Command**: `npm start`
 - **Configuration**: Managed via Replit deployment settings
+
+# Hierarchical Tag System
+
+## Features
+The expense tracking system uses a two-level hierarchical tag structure for detailed financial categorization and reporting:
+
+### Tag Structure
+- **Main Tags** (Categories): Top-level expense categories like "Family bazer", "Transportation", "Bills"
+- **Sub-Tags** (Subcategories): Detailed breakdown under each main tag (e.g., "kacha bazer", "fish bazer", "grocery" under "Family bazer")
+
+### Admin Panel - Tag Management
+- **Hierarchical UI**: Split-panel interface showing main tags on left, sub-tags on right
+- **CRUD Operations**: Full create, read, update, delete for both tag levels
+- **Cascade Delete**: Deleting a main tag automatically removes all its sub-tags
+- **Visual Hierarchy**: Clear parent-child relationship visualization with icons
+
+### Expense Entry - Two-Step Selection
+- **Step 1**: Select main category from dropdown
+- **Step 2**: Select sub-category (filtered by main category selection)
+- **Validation**: Both selections required before expense submission
+- **Smart Reset**: Sub-category resets when main category changes
+
+### Database Schema
+- `main_tags`: id (varchar UUID), name (unique), description, timestamps
+- `sub_tags`: id (varchar UUID), name, mainTagId (FK with CASCADE), description, timestamps
+- `expenses.subTagId`: Foreign key to sub_tags table for hierarchical categorization
+- `expenses.tag`: Legacy text field preserved for backward compatibility
+
+### Backend API Routes
+**Main Tags:**
+- `GET /api/main-tags` - List all main tags
+- `POST /api/main-tags` - Create main tag
+- `PUT /api/main-tags/:id` - Update main tag
+- `DELETE /api/main-tags/:id` - Delete main tag (cascades to sub-tags)
+
+**Sub-Tags:**
+- `GET /api/sub-tags?mainTagId={id}` - Get sub-tags by main tag (optional filter)
+- `POST /api/sub-tags` - Create sub-tag
+- `PUT /api/sub-tags/:id` - Update sub-tag
+- `DELETE /api/sub-tags/:id` - Delete sub-tag
+
+### Monthly Reporting
+- Expenses grouped by main category with sub-category breakdown
+- Monthly totals per main tag with drill-down to sub-tag details
+- Example: "Family bazer: $1,500 → kacha bazer: $800, fish bazer: $500, grocery: $200"

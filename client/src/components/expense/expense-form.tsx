@@ -7,24 +7,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { InsertExpense, Tag, PaymentMethod } from "@shared/schema";
+import { InsertExpense, PaymentMethod } from "@shared/schema";
+
+type MainTag = { id: string; name: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; };
+type SubTag = { id: string; name: string; mainTagId: string; description: string | null; createdAt: Date | null; updatedAt: Date | null; };
 
 export default function ExpenseForm() {
+  const [selectedMainTag, setSelectedMainTag] = useState('');
   const [formData, setFormData] = useState<InsertExpense>({
     date: new Date().toISOString().split('T')[0],
     type: '',
     details: '',
     amount: '',
     tag: '',
+    subTagId: '',
     paymentMethod: '',
   });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch tags and payment methods from admin panel
-  const { data: tags = [] } = useQuery<Tag[]>({
-    queryKey: ["/api/tags"],
+  // Fetch main tags
+  const { data: mainTags = [] } = useQuery<MainTag[]>({
+    queryKey: ["/api/main-tags"],
+  });
+
+  // Fetch sub-tags for selected main tag
+  const { data: subTags = [] } = useQuery<SubTag[]>({
+    queryKey: ["/api/sub-tags", selectedMainTag],
+    enabled: !!selectedMainTag,
+    queryFn: async () => {
+      if (!selectedMainTag) return [];
+      const response = await fetch(`/api/sub-tags?mainTagId=${selectedMainTag}`);
+      if (!response.ok) throw new Error('Failed to fetch sub tags');
+      return response.json();
+    },
   });
 
   const { data: paymentMethods = [] } = useQuery<PaymentMethod[]>({
@@ -46,8 +63,10 @@ export default function ExpenseForm() {
         details: '',
         amount: '',
         tag: '',
+        subTagId: '',
         paymentMethod: '',
       });
+      setSelectedMainTag('');
     },
     onError: () => {
       toast({
@@ -135,24 +154,49 @@ export default function ExpenseForm() {
             </div>
             
             <div>
-              <Label htmlFor="tag" className="text-sm font-medium">Tag</Label>
+              <Label htmlFor="mainTag" className="text-sm font-medium">Main Category</Label>
               <Select
-                value={formData.tag}
-                onValueChange={(value) => handleInputChange('tag', value)}
+                value={selectedMainTag}
+                onValueChange={(value) => {
+                  setSelectedMainTag(value);
+                  handleInputChange('subTagId', ''); // Reset sub-tag when main tag changes
+                }}
                 required
               >
-                <SelectTrigger className="mt-1 h-11" data-testid="select-tag">
-                  <SelectValue placeholder="Select Tag" />
+                <SelectTrigger className="mt-1 h-11" data-testid="select-main-tag">
+                  <SelectValue placeholder="Select Main Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tags.filter(tag => tag.name && tag.name.trim() !== '').map((tag) => (
-                    <SelectItem key={tag.id} value={tag.name}>
+                  {mainTags.map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id}>
                       {tag.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Select from admin-defined tags</p>
+              <p className="text-xs text-muted-foreground mt-1">e.g., Family bazer, Transportation</p>
+            </div>
+
+            <div>
+              <Label htmlFor="subTag" className="text-sm font-medium">Sub-Category</Label>
+              <Select
+                value={formData.subTagId || ''}
+                onValueChange={(value) => handleInputChange('subTagId', value)}
+                required
+                disabled={!selectedMainTag}
+              >
+                <SelectTrigger className="mt-1 h-11" data-testid="select-sub-tag">
+                  <SelectValue placeholder={selectedMainTag ? "Select Sub-Category" : "Select Main Category First"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {subTags.map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id}>
+                      {tag.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">e.g., kacha bazer, fish bazer</p>
             </div>
             
             <div>

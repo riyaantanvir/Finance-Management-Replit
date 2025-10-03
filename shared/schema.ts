@@ -38,6 +38,26 @@ export const users = pgTable("users", {
   cryptoAccess: boolean("crypto_access").default(false),
 });
 
+// Main tags (top-level categories like "Family bazer", "Transportation")
+export const mainTags = pgTable("main_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Sub-tags (detailed categories under main tags like "kacha bazer", "fish bazer")
+export const subTags = pgTable("sub_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  mainTagId: varchar("main_tag_id").notNull().references(() => mainTags.id, { onDelete: "cascade" }),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Keep old tags table for backward compatibility during migration
 export const tags = pgTable("tags", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
@@ -61,7 +81,8 @@ export const expenses = pgTable("expenses", {
   type: text("type").notNull(), // 'income' or 'expense'
   details: text("details").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  tag: text("tag").notNull(),
+  tag: text("tag"), // Keep for backward compatibility, nullable now
+  subTagId: varchar("sub_tag_id").references(() => subTags.id), // New hierarchical tag system
   paymentMethod: text("payment_method").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -279,6 +300,18 @@ export const insertTagSchema = createInsertSchema(tags).omit({
   updatedAt: true,
 });
 
+export const insertMainTagSchema = createInsertSchema(mainTags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSubTagSchema = createInsertSchema(subTags).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
   id: true,
   createdAt: true,
@@ -417,6 +450,12 @@ export type User = typeof users.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 export type Tag = typeof tags.$inferSelect;
 export type UpdateTag = z.infer<typeof updateTagSchema>;
+
+export type InsertMainTag = z.infer<typeof insertMainTagSchema>;
+export type MainTag = typeof mainTags.$inferSelect;
+
+export type InsertSubTag = z.infer<typeof insertSubTagSchema>;
+export type SubTag = typeof subTags.$inferSelect;
 export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type UpdatePaymentMethod = z.infer<typeof updatePaymentMethodSchema>;

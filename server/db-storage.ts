@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports, cryptoApiSettings, cryptoWatchlist, cryptoAlerts, cryptoPortfolio } from '@shared/schema';
+import { users, tags, mainTags, subTags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports, cryptoApiSettings, cryptoWatchlist, cryptoAlerts, cryptoPortfolio } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -11,6 +11,10 @@ import {
   type Tag,
   type InsertTag,
   type UpdateTag,
+  type MainTag,
+  type InsertMainTag,
+  type SubTag,
+  type InsertSubTag,
   type PaymentMethod,
   type InsertPaymentMethod,
   type UpdatePaymentMethod,
@@ -154,6 +158,77 @@ export class DatabaseStorage implements IStorage {
   async getAllTags(): Promise<Tag[]> {
     return await db.query.tags.findMany({
       orderBy: [tags.name]
+    });
+  }
+
+  // Main Tag methods (hierarchical)
+  async getMainTag(id: string): Promise<MainTag | undefined> {
+    const result = await db.query.mainTags.findFirst({
+      where: eq(mainTags.id, id)
+    });
+    return result;
+  }
+
+  async createMainTag(mainTag: InsertMainTag): Promise<MainTag> {
+    const [result] = await db.insert(mainTags).values(mainTag).returning();
+    return result;
+  }
+
+  async updateMainTag(id: string, mainTag: Partial<InsertMainTag>): Promise<MainTag | undefined> {
+    const [result] = await db.update(mainTags)
+      .set({ ...mainTag, updatedAt: new Date() })
+      .where(eq(mainTags.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteMainTag(id: string): Promise<boolean> {
+    const result = await db.delete(mainTags).where(eq(mainTags.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllMainTags(): Promise<MainTag[]> {
+    return await db.query.mainTags.findMany({
+      orderBy: [mainTags.name]
+    });
+  }
+
+  // Sub Tag methods (hierarchical)
+  async getSubTag(id: string): Promise<SubTag | undefined> {
+    const result = await db.query.subTags.findFirst({
+      where: eq(subTags.id, id)
+    });
+    return result;
+  }
+
+  async createSubTag(subTag: InsertSubTag): Promise<SubTag> {
+    const [result] = await db.insert(subTags).values(subTag).returning();
+    return result;
+  }
+
+  async updateSubTag(id: string, subTag: Partial<InsertSubTag>): Promise<SubTag | undefined> {
+    const [result] = await db.update(subTags)
+      .set({ ...subTag, updatedAt: new Date() })
+      .where(eq(subTags.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteSubTag(id: string): Promise<boolean> {
+    const result = await db.delete(subTags).where(eq(subTags.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllSubTags(): Promise<SubTag[]> {
+    return await db.query.subTags.findMany({
+      orderBy: [subTags.name]
+    });
+  }
+
+  async getSubTagsByMainTag(mainTagId: string): Promise<SubTag[]> {
+    return await db.query.subTags.findMany({
+      where: eq(subTags.mainTagId, mainTagId),
+      orderBy: [subTags.name]
     });
   }
 

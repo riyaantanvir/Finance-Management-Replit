@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import UserForm from "@/components/admin/user-form";
 import UserTable from "@/components/admin/user-table";
-import { TagsManagement } from '@/components/admin/tags-management';
+import { HierarchicalTagsManagement } from '@/components/admin/hierarchical-tags-management';
 import { PaymentMethodsManagement } from '@/components/admin/payment-methods-management';
 import { ExchangeRatesManagement } from '@/components/admin/exchange-rates-management';
 import { TelegramManagement } from '@/components/admin/telegram-management';
@@ -58,7 +58,7 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="tags" className="space-y-6">
-          <TagsManagement />
+          <HierarchicalTagsManagement />
         </TabsContent>
 
         <TabsContent value="payment-methods" className="space-y-6">

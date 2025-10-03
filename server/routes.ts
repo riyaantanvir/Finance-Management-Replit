@@ -8,6 +8,8 @@ import {
   updateUserSchema,
   insertTagSchema,
   updateTagSchema,
+  insertMainTagSchema,
+  insertSubTagSchema,
   insertPaymentMethodSchema,
   updatePaymentMethodSchema,
   insertAccountSchema,
@@ -395,6 +397,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Tag deleted successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to delete tag" });
+    }
+  });
+
+  // Main Tag routes (hierarchical)
+  app.get("/api/main-tags", async (req, res) => {
+    try {
+      const mainTags = await storage.getAllMainTags();
+      res.json(mainTags);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch main tags" });
+    }
+  });
+
+  app.post("/api/main-tags", async (req, res) => {
+    try {
+      const mainTagData = insertMainTagSchema.parse(req.body);
+      const mainTag = await storage.createMainTag(mainTagData);
+      res.status(201).json(mainTag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create main tag" });
+      }
+    }
+  });
+
+  app.put("/api/main-tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const mainTagData = req.body;
+      
+      const mainTag = await storage.updateMainTag(id, mainTagData);
+      if (!mainTag) {
+        return res.status(404).json({ message: "Main tag not found" });
+      }
+
+      res.json(mainTag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update main tag" });
+      }
+    }
+  });
+
+  app.delete("/api/main-tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteMainTag(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Main tag not found" });
+      }
+
+      res.json({ message: "Main tag deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete main tag" });
+    }
+  });
+
+  // Sub Tag routes (hierarchical)
+  app.get("/api/sub-tags", async (req, res) => {
+    try {
+      const { mainTagId } = req.query;
+      
+      if (mainTagId && typeof mainTagId === 'string') {
+        const subTags = await storage.getSubTagsByMainTag(mainTagId);
+        res.json(subTags);
+      } else {
+        const subTags = await storage.getAllSubTags();
+        res.json(subTags);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch sub tags" });
+    }
+  });
+
+  app.post("/api/sub-tags", async (req, res) => {
+    try {
+      const subTagData = insertSubTagSchema.parse(req.body);
+      const subTag = await storage.createSubTag(subTagData);
+      res.status(201).json(subTag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create sub tag" });
+      }
+    }
+  });
+
+  app.put("/api/sub-tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const subTagData = req.body;
+      
+      const subTag = await storage.updateSubTag(id, subTagData);
+      if (!subTag) {
+        return res.status(404).json({ message: "Sub tag not found" });
+      }
+
+      res.json(subTag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update sub tag" });
+      }
+    }
+  });
+
+  app.delete("/api/sub-tags/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteSubTag(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Sub tag not found" });
+      }
+
+      res.json({ message: "Sub tag deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete sub tag" });
     }
   });
 
