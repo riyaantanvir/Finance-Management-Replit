@@ -1702,24 +1702,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test CoinGecko API with a simple ping request
       const response = await fetch(`https://api.coingecko.com/api/v3/ping?x_cg_demo_api_key=${apiKey}`);
 
-      if (response.ok) {
+      // Check content type to see if we got JSON or HTML
+      const contentType = response.headers.get('content-type');
+      
+      if (response.ok && contentType?.includes('application/json')) {
         try {
           const data = await response.json();
           res.json({ 
             connected: true, 
-            message: "CoinGecko API connection successful",
-            data: data
+            message: "CoinGecko API connection successful"
           });
         } catch (jsonError) {
           res.json({
             connected: false,
-            message: "API returned invalid response format"
+            message: "API returned invalid JSON response"
           });
         }
-      } else {
+      } else if (!response.ok) {
         res.json({ 
           connected: false, 
-          message: `Failed to connect: ${response.status} - Invalid API key or request`
+          message: `Failed: HTTP ${response.status} - Check your API key`
+        });
+      } else {
+        // Got 200 but not JSON (probably HTML error)
+        res.json({
+          connected: false,
+          message: "Invalid API key - received error page instead of JSON"
         });
       }
     } catch (error: any) {
@@ -1743,25 +1751,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test CryptoNews API with a simple request
       const response = await fetch(`https://cryptonews-api.com/api/v1?tickers=BTC&items=1&token=${apiKey}`);
 
-      if (response.ok) {
+      // Check content type to see if we got JSON or HTML
+      const contentType = response.headers.get('content-type');
+      
+      if (response.ok && contentType?.includes('application/json')) {
         try {
           const data = await response.json();
           res.json({ 
             connected: true, 
-            message: "CryptoNews API connection successful",
-            data: data
+            message: "CryptoNews API connection successful"
           });
         } catch (jsonError) {
           res.json({
             connected: false,
-            message: "API returned invalid response format"
+            message: "API returned invalid JSON response"
           });
         }
-      } else {
-        const errorText = await response.text();
+      } else if (!response.ok) {
         res.json({ 
           connected: false, 
-          message: `Failed to connect: ${response.status} - Invalid API key or request`
+          message: `Failed: HTTP ${response.status} - Check your API key`
+        });
+      } else {
+        // Got 200 but not JSON (probably HTML error)
+        res.json({
+          connected: false,
+          message: "Invalid API key - received error page instead of JSON"
         });
       }
     } catch (error: any) {
