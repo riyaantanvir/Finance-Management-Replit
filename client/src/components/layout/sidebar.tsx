@@ -294,6 +294,59 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
           )}
         </div>
         )}
+
+        {/* Crypto World Section */}
+        {user?.cryptoAccess && (
+        <div className="mt-4">
+          <button
+            onClick={() => setCryptoExpanded(!cryptoExpanded)}
+            className={cn(
+              "flex items-center justify-between w-full px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
+              location.startsWith("/crypto")
+                ? "text-primary bg-accent border-l-4 border-primary"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+            )}
+            data-testid="button-crypto-menu"
+          >
+            <div className="flex items-center">
+              <Bitcoin className="h-5 w-5 min-w-[1.25rem]" />
+              {(isOpen || isMobile) && <span className="ml-3 truncate">Crypto World</span>}
+            </div>
+            {(isOpen || isMobile) && (
+              cryptoExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )
+            )}
+          </button>
+
+          {/* Crypto World Submenu */}
+          {cryptoExpanded && (isOpen || isMobile) && (
+            <div className="ml-8 mt-2 space-y-1">
+              {cryptoNavigation.map((item) => {
+                const isActive = location === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={handleLinkClick}
+                    className={cn(
+                      "flex items-center px-4 py-2 text-sm transition-colors rounded-lg",
+                      isActive
+                        ? "text-primary bg-accent/50 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    )}
+                    data-testid={`link-crypto-${item.name.toLowerCase()}`}
+                  >
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        )}
       </nav>
     </div>
   );
