@@ -72,6 +72,7 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
       investmentManagementAccess: user.investmentManagementAccess,
       fundManagementAccess: user.fundManagementAccess,
       subscriptionsAccess: user.subscriptionsAccess,
+      cryptoAccess: user.cryptoAccess,
     });
   };
 
@@ -134,6 +135,7 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
                   <TableHead>Investment Mgmt</TableHead>
                   <TableHead>Fund Mgmt</TableHead>
                   <TableHead>Subscriptions</TableHead>
+                  <TableHead>Crypto Access</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -287,6 +289,27 @@ export default function UserTable({ users, isLoading }: UserTableProps) {
                           data-testid={`badge-subscriptions-${user.id}`}
                         >
                           {user.subscriptionsAccess ? 'Yes' : 'No'}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editingId === user.id ? (
+                        <Checkbox
+                          checked={!!editData.cryptoAccess}
+                          onCheckedChange={(checked) => handlePermissionChange('cryptoAccess', !!checked)}
+                          data-testid={`checkbox-edit-crypto-${user.id}`}
+                        />
+                      ) : (
+                        <Badge
+                          variant={user.cryptoAccess ? 'default' : 'destructive'}
+                          className={
+                            user.cryptoAccess
+                              ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                              : 'bg-red-100 text-red-800 hover:bg-red-100'
+                          }
+                          data-testid={`badge-crypto-access-${user.id}`}
+                        >
+                          {user.cryptoAccess ? 'Yes' : 'No'}
                         </Badge>
                       )}
                     </TableCell>
