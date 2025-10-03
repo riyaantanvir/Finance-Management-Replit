@@ -265,7 +265,9 @@ export const cryptoPortfolio = pgTable("crypto_portfolio", {
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+  uniqueUserCoin: sql`unique(user_id, coin_id)`,
+}));
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
