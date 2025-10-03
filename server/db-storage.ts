@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports, cryptoApiSettings, cryptoWatchlist, cryptoAlerts, cryptoPortfolio } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -45,7 +45,18 @@ import {
   type UpdateTelegramSettings,
   type WorkReport,
   type InsertWorkReport,
-  type UpdateWorkReport
+  type UpdateWorkReport,
+  type CryptoApiSettings,
+  type InsertCryptoApiSettings,
+  type UpdateCryptoApiSettings,
+  type CryptoWatchlist,
+  type InsertCryptoWatchlist,
+  type CryptoAlert,
+  type InsertCryptoAlert,
+  type UpdateCryptoAlert,
+  type CryptoPortfolio,
+  type InsertCryptoPortfolio,
+  type UpdateCryptoPortfolio
 } from "@shared/schema";
 import { IStorage } from './storage';
 
@@ -1342,6 +1353,128 @@ export class DatabaseStorage implements IStorage {
     return await db.query.workReports.findMany({
       where: whereClause,
       orderBy: [desc(workReports.date), desc(workReports.createdAt)]
+    });
+  }
+
+  // Crypto API Settings methods
+  async getCryptoApiSettings(): Promise<CryptoApiSettings | undefined> {
+    return await db.query.cryptoApiSettings.findFirst();
+  }
+
+  async createCryptoApiSettings(settings: InsertCryptoApiSettings): Promise<CryptoApiSettings> {
+    const [result] = await db.insert(cryptoApiSettings).values(settings).returning();
+    return result;
+  }
+
+  async updateCryptoApiSettings(id: string, settings: UpdateCryptoApiSettings): Promise<CryptoApiSettings | undefined> {
+    const [result] = await db.update(cryptoApiSettings)
+      .set({ ...settings, updatedAt: new Date() })
+      .where(eq(cryptoApiSettings.id, id))
+      .returning();
+    return result;
+  }
+
+  // Crypto Watchlist methods
+  async getCryptoWatchlist(id: string): Promise<CryptoWatchlist | undefined> {
+    return await db.query.cryptoWatchlist.findFirst({
+      where: eq(cryptoWatchlist.id, id)
+    });
+  }
+
+  async createCryptoWatchlist(watchlist: InsertCryptoWatchlist): Promise<CryptoWatchlist> {
+    const [result] = await db.insert(cryptoWatchlist).values(watchlist).returning();
+    return result;
+  }
+
+  async deleteCryptoWatchlist(id: string): Promise<boolean> {
+    const result = await db.delete(cryptoWatchlist).where(eq(cryptoWatchlist.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUserCryptoWatchlist(userId: string): Promise<CryptoWatchlist[]> {
+    return await db.query.cryptoWatchlist.findMany({
+      where: eq(cryptoWatchlist.userId, userId),
+      orderBy: [desc(cryptoWatchlist.addedAt)]
+    });
+  }
+
+  async checkCoinInWatchlist(userId: string, coinId: string): Promise<CryptoWatchlist | undefined> {
+    return await db.query.cryptoWatchlist.findFirst({
+      where: and(
+        eq(cryptoWatchlist.userId, userId),
+        eq(cryptoWatchlist.coinId, coinId)
+      )
+    });
+  }
+
+  // Crypto Alert methods
+  async getCryptoAlert(id: string): Promise<CryptoAlert | undefined> {
+    return await db.query.cryptoAlerts.findFirst({
+      where: eq(cryptoAlerts.id, id)
+    });
+  }
+
+  async createCryptoAlert(alert: InsertCryptoAlert): Promise<CryptoAlert> {
+    const [result] = await db.insert(cryptoAlerts).values(alert).returning();
+    return result;
+  }
+
+  async updateCryptoAlert(id: string, alert: UpdateCryptoAlert): Promise<CryptoAlert | undefined> {
+    const [result] = await db.update(cryptoAlerts)
+      .set({ ...alert, updatedAt: new Date() })
+      .where(eq(cryptoAlerts.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCryptoAlert(id: string): Promise<boolean> {
+    const result = await db.delete(cryptoAlerts).where(eq(cryptoAlerts.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUserCryptoAlerts(userId: string): Promise<CryptoAlert[]> {
+    return await db.query.cryptoAlerts.findMany({
+      where: eq(cryptoAlerts.userId, userId),
+      orderBy: [desc(cryptoAlerts.createdAt)]
+    });
+  }
+
+  async getActiveCryptoAlerts(): Promise<CryptoAlert[]> {
+    return await db.query.cryptoAlerts.findMany({
+      where: eq(cryptoAlerts.status, 'active'),
+      orderBy: [desc(cryptoAlerts.createdAt)]
+    });
+  }
+
+  // Crypto Portfolio methods
+  async getCryptoPortfolio(id: string): Promise<CryptoPortfolio | undefined> {
+    return await db.query.cryptoPortfolio.findFirst({
+      where: eq(cryptoPortfolio.id, id)
+    });
+  }
+
+  async createCryptoPortfolio(portfolio: InsertCryptoPortfolio): Promise<CryptoPortfolio> {
+    const [result] = await db.insert(cryptoPortfolio).values(portfolio).returning();
+    return result;
+  }
+
+  async updateCryptoPortfolio(id: string, portfolio: UpdateCryptoPortfolio): Promise<CryptoPortfolio | undefined> {
+    const [result] = await db.update(cryptoPortfolio)
+      .set({ ...portfolio, updatedAt: new Date() })
+      .where(eq(cryptoPortfolio.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCryptoPortfolio(id: string): Promise<boolean> {
+    const result = await db.delete(cryptoPortfolio).where(eq(cryptoPortfolio.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUserCryptoPortfolio(userId: string): Promise<CryptoPortfolio[]> {
+    return await db.query.cryptoPortfolio.findMany({
+      where: eq(cryptoPortfolio.userId, userId),
+      orderBy: [desc(cryptoPortfolio.createdAt)]
     });
   }
 }

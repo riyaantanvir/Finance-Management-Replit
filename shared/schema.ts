@@ -20,6 +20,10 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "
 // Enums for Work Reports
 export const workReportStatusEnum = pgEnum("work_report_status", ["submitted", "approved", "rejected"]);
 
+// Enums for Crypto Management
+export const cryptoAlertTypeEnum = pgEnum("crypto_alert_type", ["price_above", "price_below", "percent_change_up", "percent_change_down"]);
+export const cryptoAlertStatusEnum = pgEnum("crypto_alert_status", ["active", "triggered", "disabled"]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -31,6 +35,7 @@ export const users = pgTable("users", {
   investmentManagementAccess: boolean("investment_management_access").default(false),
   fundManagementAccess: boolean("fund_management_access").default(false),
   subscriptionsAccess: boolean("subscriptions_access").default(false),
+  cryptoAccess: boolean("crypto_access").default(false),
 });
 
 export const tags = pgTable("tags", {
@@ -212,6 +217,56 @@ export const workReports = pgTable("work_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Crypto Management Tables
+export const cryptoApiSettings = pgTable("crypto_api_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coinGeckoApiKey: text("coingecko_api_key"),
+  cryptoNewsApiKey: text("cryptonews_api_key"),
+  telegramBotToken: text("telegram_bot_token"),
+  telegramChatId: text("telegram_chat_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const cryptoWatchlist = pgTable("crypto_watchlist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  coinId: text("coin_id").notNull(),
+  coinSymbol: text("coin_symbol").notNull(),
+  coinName: text("coin_name").notNull(),
+  addedAt: timestamp("added_at").defaultNow(),
+}, (table) => ({
+  uniqueUserCoin: sql`unique(user_id, coin_id)`,
+}));
+
+export const cryptoAlerts = pgTable("crypto_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  coinId: text("coin_id").notNull(),
+  coinSymbol: text("coin_symbol").notNull(),
+  alertType: cryptoAlertTypeEnum("alert_type").notNull(),
+  targetValue: decimal("target_value", { precision: 18, scale: 8 }).notNull(),
+  status: cryptoAlertStatusEnum("status").notNull().default("active"),
+  notifyTelegram: boolean("notify_telegram").notNull().default(true),
+  notifyEmail: boolean("notify_email").notNull().default(false),
+  triggeredAt: timestamp("triggered_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const cryptoPortfolio = pgTable("crypto_portfolio", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  coinId: text("coin_id").notNull(),
+  coinSymbol: text("coin_symbol").notNull(),
+  quantity: decimal("quantity", { precision: 18, scale: 8 }).notNull(),
+  buyPrice: decimal("buy_price", { precision: 18, scale: 8 }).notNull(),
+  buyDate: text("buy_date").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 });
@@ -303,6 +358,31 @@ export const insertWorkReportSchema = createInsertSchema(workReports).omit({
   updatedAt: true,
 });
 
+// Crypto Management Schemas
+export const insertCryptoApiSettingsSchema = createInsertSchema(cryptoApiSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCryptoWatchlistSchema = createInsertSchema(cryptoWatchlist).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const insertCryptoAlertSchema = createInsertSchema(cryptoAlerts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  triggeredAt: true,
+});
+
+export const insertCryptoPortfolioSchema = createInsertSchema(cryptoPortfolio).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const updateExpenseSchema = insertExpenseSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
@@ -320,6 +400,11 @@ export const updateSubscriptionSchema = insertSubscriptionSchema.partial();
 
 // Work Reports Update Schemas
 export const updateWorkReportSchema = insertWorkReportSchema.partial();
+
+// Crypto Management Update Schemas
+export const updateCryptoApiSettingsSchema = insertCryptoApiSettingsSchema.partial();
+export const updateCryptoAlertSchema = insertCryptoAlertSchema.partial();
+export const updateCryptoPortfolioSchema = insertCryptoPortfolioSchema.partial();
 
 export const updateUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -377,3 +462,16 @@ export type UpdateSubscription = z.infer<typeof updateSubscriptionSchema>;
 export type InsertWorkReport = z.infer<typeof insertWorkReportSchema>;
 export type WorkReport = typeof workReports.$inferSelect;
 export type UpdateWorkReport = z.infer<typeof updateWorkReportSchema>;
+
+// Crypto Management Types
+export type InsertCryptoApiSettings = z.infer<typeof insertCryptoApiSettingsSchema>;
+export type CryptoApiSettings = typeof cryptoApiSettings.$inferSelect;
+export type UpdateCryptoApiSettings = z.infer<typeof updateCryptoApiSettingsSchema>;
+export type InsertCryptoWatchlist = z.infer<typeof insertCryptoWatchlistSchema>;
+export type CryptoWatchlist = typeof cryptoWatchlist.$inferSelect;
+export type InsertCryptoAlert = z.infer<typeof insertCryptoAlertSchema>;
+export type CryptoAlert = typeof cryptoAlerts.$inferSelect;
+export type UpdateCryptoAlert = z.infer<typeof updateCryptoAlertSchema>;
+export type InsertCryptoPortfolio = z.infer<typeof insertCryptoPortfolioSchema>;
+export type CryptoPortfolio = typeof cryptoPortfolio.$inferSelect;
+export type UpdateCryptoPortfolio = z.infer<typeof updateCryptoPortfolioSchema>;

@@ -42,7 +42,18 @@ import {
   type UpdateTelegramSettings,
   type WorkReport,
   type InsertWorkReport,
-  type UpdateWorkReport
+  type UpdateWorkReport,
+  type CryptoApiSettings,
+  type InsertCryptoApiSettings,
+  type UpdateCryptoApiSettings,
+  type CryptoWatchlist,
+  type InsertCryptoWatchlist,
+  type CryptoAlert,
+  type InsertCryptoAlert,
+  type UpdateCryptoAlert,
+  type CryptoPortfolio,
+  type InsertCryptoPortfolio,
+  type UpdateCryptoPortfolio
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -191,6 +202,33 @@ export interface IStorage {
     status?: string;
     taskDetails?: string;
   }): Promise<WorkReport[]>;
+
+  // Crypto API Settings methods
+  getCryptoApiSettings(): Promise<CryptoApiSettings | undefined>;
+  createCryptoApiSettings(settings: InsertCryptoApiSettings): Promise<CryptoApiSettings>;
+  updateCryptoApiSettings(id: string, settings: UpdateCryptoApiSettings): Promise<CryptoApiSettings | undefined>;
+
+  // Crypto Watchlist methods
+  getCryptoWatchlist(id: string): Promise<CryptoWatchlist | undefined>;
+  createCryptoWatchlist(watchlist: InsertCryptoWatchlist): Promise<CryptoWatchlist>;
+  deleteCryptoWatchlist(id: string): Promise<boolean>;
+  getUserCryptoWatchlist(userId: string): Promise<CryptoWatchlist[]>;
+  checkCoinInWatchlist(userId: string, coinId: string): Promise<CryptoWatchlist | undefined>;
+
+  // Crypto Alert methods
+  getCryptoAlert(id: string): Promise<CryptoAlert | undefined>;
+  createCryptoAlert(alert: InsertCryptoAlert): Promise<CryptoAlert>;
+  updateCryptoAlert(id: string, alert: UpdateCryptoAlert): Promise<CryptoAlert | undefined>;
+  deleteCryptoAlert(id: string): Promise<boolean>;
+  getUserCryptoAlerts(userId: string): Promise<CryptoAlert[]>;
+  getActiveCryptoAlerts(): Promise<CryptoAlert[]>;
+
+  // Crypto Portfolio methods
+  getCryptoPortfolio(id: string): Promise<CryptoPortfolio | undefined>;
+  createCryptoPortfolio(portfolio: InsertCryptoPortfolio): Promise<CryptoPortfolio>;
+  updateCryptoPortfolio(id: string, portfolio: UpdateCryptoPortfolio): Promise<CryptoPortfolio | undefined>;
+  deleteCryptoPortfolio(id: string): Promise<boolean>;
+  getUserCryptoPortfolio(userId: string): Promise<CryptoPortfolio[]>;
 }
 
 export class MemStorage {
@@ -218,6 +256,7 @@ export class MemStorage {
       investmentManagementAccess: true,
       fundManagementAccess: true,
       subscriptionsAccess: true,
+      cryptoAccess: true,
     };
     this.users.set(adminId, adminUser);
   }
@@ -245,6 +284,7 @@ export class MemStorage {
       investmentManagementAccess: insertUser.investmentManagementAccess ?? false,
       fundManagementAccess: insertUser.fundManagementAccess ?? false,
       subscriptionsAccess: insertUser.subscriptionsAccess ?? false,
+      cryptoAccess: insertUser.cryptoAccess ?? false,
     };
     this.users.set(id, user);
     return user;

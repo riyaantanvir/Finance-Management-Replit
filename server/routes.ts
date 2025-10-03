@@ -84,6 +84,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   }
 
+  // Middleware for crypto access authentication
+  async function requireCryptoAccess(req: any, res: any, next: any) {
+    const sessionId = req.query.sessionId || req.body.sessionId;
+    const user = await validateSession(sessionId);
+    
+    if (!user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!user.cryptoAccess) {
+      return res.status(403).json({ message: "Crypto access not enabled for this user" });
+    }
+    
+    req.authenticatedUser = user;
+    next();
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -1641,6 +1658,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Fetch user work reports error:', error);
       res.status(500).json({ message: "Failed to fetch user work reports" });
+    }
+  });
+
+  // Crypto API Settings routes (Admin only)
+  app.get("/api/crypto/settings", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const settings = await storage.getCryptoApiSettings();
+      res.json(settings || {});
+    } catch (error) {
+      console.error('Fetch crypto settings error:', error);
+      res.status(500).json({ message: "Failed to fetch crypto settings" });
+    }
+  });
+
+  app.put("/api/crypto/settings", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const existingSettings = await storage.getCryptoApiSettings();
+      let result;
+      
+      if (existingSettings) {
+        result = await storage.updateCryptoApiSettings(existingSettings.id, req.body);
+      } else {
+        result = await storage.createCryptoApiSettings(req.body);
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Update crypto settings error:', error);
+      res.status(500).json({ message: "Failed to update crypto settings" });
+    }
+  });
+
+  // Crypto Watchlist routes
+  app.get("/api/crypto/watchlist", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const watchlist = await storage.getUserCryptoWatchlist(userId);
+      res.json(watchlist);
+    } catch (error) {
+      console.error('Fetch watchlist error:', error);
+      res.status(500).json({ message: "Failed to fetch watchlist" });
+    }
+  });
+
+  app.post("/api/crypto/watchlist", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const existing = await storage.checkCoinInWatchlist(userId, req.body.coinId);
+      
+      if (existing) {
+        return res.status(400).json({ message: "Coin already in watchlist" });
+      }
+      
+      const watchlist = await storage.createCryptoWatchlist({
+        ...req.body,
+        userId
+      });
+      res.json(watchlist);
+    } catch (error) {
+      console.error('Add to watchlist error:', error);
+      res.status(500).json({ message: "Failed to add to watchlist" });
+    }
+  });
+
+  app.delete("/api/crypto/watchlist/:id", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.authenticatedUser.id;
+      
+      const existing = await storage.getCryptoWatchlist(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ message: "Watchlist item not found" });
+      }
+      
+      await storage.deleteCryptoWatchlist(id);
+      res.json({ message: "Removed from watchlist" });
+    } catch (error) {
+      console.error('Delete from watchlist error:', error);
+      res.status(500).json({ message: "Failed to remove from watchlist" });
+    }
+  });
+
+  // Crypto Alerts routes
+  app.get("/api/crypto/alerts", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const alerts = await storage.getUserCryptoAlerts(userId);
+      res.json(alerts);
+    } catch (error) {
+      console.error('Fetch alerts error:', error);
+      res.status(500).json({ message: "Failed to fetch alerts" });
+    }
+  });
+
+  app.post("/api/crypto/alerts", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const alert = await storage.createCryptoAlert({
+        ...req.body,
+        userId
+      });
+      res.json(alert);
+    } catch (error) {
+      console.error('Create alert error:', error);
+      res.status(500).json({ message: "Failed to create alert" });
+    }
+  });
+
+  app.put("/api/crypto/alerts/:id", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.authenticatedUser.id;
+      
+      const existing = await storage.getCryptoAlert(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      const alert = await storage.updateCryptoAlert(id, req.body);
+      res.json(alert);
+    } catch (error) {
+      console.error('Update alert error:', error);
+      res.status(500).json({ message: "Failed to update alert" });
+    }
+  });
+
+  app.delete("/api/crypto/alerts/:id", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.authenticatedUser.id;
+      
+      const existing = await storage.getCryptoAlert(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      await storage.deleteCryptoAlert(id);
+      res.json({ message: "Alert deleted" });
+    } catch (error) {
+      console.error('Delete alert error:', error);
+      res.status(500).json({ message: "Failed to delete alert" });
+    }
+  });
+
+  // Crypto Portfolio routes
+  app.get("/api/crypto/portfolio", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const portfolio = await storage.getUserCryptoPortfolio(userId);
+      res.json(portfolio);
+    } catch (error) {
+      console.error('Fetch portfolio error:', error);
+      res.status(500).json({ message: "Failed to fetch portfolio" });
+    }
+  });
+
+  app.post("/api/crypto/portfolio", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const userId = req.authenticatedUser.id;
+      const portfolio = await storage.createCryptoPortfolio({
+        ...req.body,
+        userId
+      });
+      res.json(portfolio);
+    } catch (error) {
+      console.error('Create portfolio entry error:', error);
+      res.status(500).json({ message: "Failed to create portfolio entry" });
+    }
+  });
+
+  app.put("/api/crypto/portfolio/:id", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.authenticatedUser.id;
+      
+      const existing = await storage.getCryptoPortfolio(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ message: "Portfolio entry not found" });
+      }
+      
+      const portfolio = await storage.updateCryptoPortfolio(id, req.body);
+      res.json(portfolio);
+    } catch (error) {
+      console.error('Update portfolio error:', error);
+      res.status(500).json({ message: "Failed to update portfolio entry" });
+    }
+  });
+
+  app.delete("/api/crypto/portfolio/:id", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.authenticatedUser.id;
+      
+      const existing = await storage.getCryptoPortfolio(id);
+      if (!existing || existing.userId !== userId) {
+        return res.status(404).json({ message: "Portfolio entry not found" });
+      }
+      
+      await storage.deleteCryptoPortfolio(id);
+      res.json({ message: "Portfolio entry deleted" });
+    } catch (error) {
+      console.error('Delete portfolio error:', error);
+      res.status(500).json({ message: "Failed to delete portfolio entry" });
     }
   });
 
