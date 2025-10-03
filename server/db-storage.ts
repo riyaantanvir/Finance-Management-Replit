@@ -1106,26 +1106,6 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Seed default investment categories
-  async seedInvestmentCategories(): Promise<void> {
-    const defaultCategories = [
-      { name: 'Gher Investment', description: 'Fish farming and aquaculture projects' },
-      { name: 'Capital Investment', description: 'Capital and infrastructure investments' },
-      { name: 'Technology', description: 'Technology and digital investments' },
-      { name: 'Real Estate', description: 'Property and real estate investments' },
-      { name: 'Trading', description: 'Trading and market investments' },
-    ];
-
-    for (const cat of defaultCategories) {
-      const existing = await db.query.invCategories.findFirst({
-        where: eq(invCategories.name, cat.name)
-      });
-      
-      if (!existing) {
-        await db.insert(invCategories).values(cat);
-      }
-    }
-  }
 
   // Helper methods for investment double-entry bookkeeping
   private async findOrCreateInvestmentAccount(projectId: string, projectName: string, currency: string): Promise<Account> {

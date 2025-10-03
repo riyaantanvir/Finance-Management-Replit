@@ -45,9 +45,10 @@ The application uses Drizzle ORM with PostgreSQL schema definitions:
 - **Access Control**: Proper 401/403 HTTP status codes for authentication and authorization failures
 
 ## Data Storage
-- **Current Implementation**: In-memory storage using Map data structures
-- **Database Ready**: Drizzle ORM configuration prepared for PostgreSQL integration
-- **Migration Support**: Database migration setup using Drizzle Kit
+- **Current Implementation**: PostgreSQL database using Drizzle ORM with DatabaseStorage implementation
+- **Database Provider**: Replit PostgreSQL database (managed database service)
+- **Migration Support**: Database schema management using Drizzle Kit (`npm run db:push`)
+- **Connection**: Uses @neondatabase/serverless driver with DATABASE_URL environment variable
 
 ## Component Architecture
 - **Layout Components**: Reusable header and sidebar components with responsive design
@@ -86,3 +87,29 @@ The application uses Drizzle ORM with PostgreSQL schema definitions:
 ## Development Tools
 - **Replit Plugins**: Development environment integration for hot reloading and error handling
 - **ESBuild**: Fast JavaScript bundler for production builds
+
+# Replit Environment Setup
+
+## Running the Application
+- **Development**: Run `npm run dev` or use the "Start application" workflow
+- **Production Build**: Run `npm run build` to build both frontend and backend
+- **Production Start**: Run `npm start` to serve the built application
+- **Server Port**: Always runs on port 5000 (only non-firewalled port in Replit)
+- **Host Configuration**: Server binds to 0.0.0.0:5000 with `allowedHosts: true` to support Replit proxy
+
+## Database Setup
+- **Database**: Replit-managed PostgreSQL database
+- **Schema Migration**: Run `npm run db:push` to push schema changes to database
+- **Force Push**: Use `npm run db:push --force` if data-loss warnings appear
+- **Environment Variables**: DATABASE_URL, PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE are auto-configured
+
+## Default Credentials
+- **Username**: Admin
+- **Password**: Admin
+- **Permissions**: Full access to all modules (dashboard, expense entry, admin panel, agency reports, investment management, fund management, subscriptions)
+
+## Deployment
+- **Deployment Type**: Autoscale (stateless web application)
+- **Build Command**: `npm run build`
+- **Run Command**: `npm start`
+- **Configuration**: Managed via Replit deployment settings
