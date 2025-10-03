@@ -1690,6 +1690,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test CoinGecko API connection
+  app.post("/api/crypto/settings/test-coingecko", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(400).json({ connected: false, message: "API key is required" });
+      }
+
+      // Test CoinGecko API with a simple ping request
+      const response = await fetch(`https://api.coingecko.com/api/v3/ping`, {
+        headers: {
+          'x-cg-demo-api-key': apiKey
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        res.json({ 
+          connected: true, 
+          message: "CoinGecko API connection successful",
+          data: data
+        });
+      } else {
+        res.json({ 
+          connected: false, 
+          message: `Failed to connect: ${response.status} ${response.statusText}`
+        });
+      }
+    } catch (error: any) {
+      console.error('CoinGecko test error:', error);
+      res.json({ 
+        connected: false, 
+        message: error.message || "Connection test failed"
+      });
+    }
+  });
+
+  // Test CryptoNews API connection
+  app.post("/api/crypto/settings/test-cryptonews", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(400).json({ connected: false, message: "API key is required" });
+      }
+
+      // Test CryptoNews API with a simple request
+      const response = await fetch(`https://cryptonews-api.com/api/v1?tickers=BTC&items=1&token=${apiKey}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        res.json({ 
+          connected: true, 
+          message: "CryptoNews API connection successful",
+          data: data
+        });
+      } else {
+        const errorText = await response.text();
+        res.json({ 
+          connected: false, 
+          message: `Failed to connect: ${response.status} - ${errorText}`
+        });
+      }
+    } catch (error: any) {
+      console.error('CryptoNews test error:', error);
+      res.json({ 
+        connected: false, 
+        message: error.message || "Connection test failed"
+      });
+    }
+  });
+
+  // Test Telegram Bot connection
+  app.post("/api/crypto/settings/test-telegram", requireCryptoAccess, async (req: any, res) => {
+    try {
+      const { botToken, chatId } = req.body;
+      
+      if (!botToken || !chatId) {
+        return res.status(400).json({ 
+          connected: false, 
+          message: "Both bot token and chat ID are required" 
+        });
+      }
+
+      // Test Telegram Bot API by sending a test message
+      const testMessage = `✅ Crypto Alert Bot Test\n\nConnection successful! Your Telegram bot is working.`;
+      
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: testMessage
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        res.json({ 
+          connected: true, 
+          message: "Test message sent to Telegram successfully! Check your chat."
+        });
+      } else {
+        res.json({ 
+          connected: false, 
+          message: `Failed: ${data.description || 'Unknown error'}`
+        });
+      }
+    } catch (error: any) {
+      console.error('Telegram test error:', error);
+      res.json({ 
+        connected: false, 
+        message: error.message || "Connection test failed"
+      });
+    }
+  });
+
   // Crypto Watchlist routes
   app.get("/api/crypto/watchlist", requireCryptoAccess, async (req: any, res) => {
     try {
