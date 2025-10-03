@@ -61,39 +61,68 @@ export default function WatchlistPage() {
     enabled: !!sessionId,
   });
 
+  // Fetch API settings to get CoinGecko API key
+  const { data: apiSettings } = useQuery<{ coinGeckoApiKey?: string }>({
+    queryKey: ["/api/crypto/settings"],
+    queryFn: async () => {
+      if (!sessionId) throw new Error("No session ID");
+      const response = await fetch(`/api/crypto/settings?sessionId=${sessionId}`);
+      if (!response.ok) throw new Error("Failed to fetch API settings");
+      return response.json();
+    },
+    enabled: !!sessionId,
+  });
+
   // Fetch coin prices from CoinGecko
   const { data: coinPrices = [], isLoading: isLoadingPrices, error: pricesError } = useQuery<CoinPrice[]>({
-    queryKey: ["/api/crypto/prices", watchlist],
+    queryKey: ["/api/crypto/prices", watchlist, apiSettings?.coinGeckoApiKey],
     queryFn: async () => {
       if (!watchlist || watchlist.length === 0) return [];
+      if (!apiSettings?.coinGeckoApiKey) {
+        throw new Error("CoinGecko API key not configured");
+      }
       
       const coinIds = watchlist.map(item => item.coinId).join(',');
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=false`
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinIds}&order=market_cap_desc&sparkline=false&x_cg_demo_api_key=${apiSettings.coinGeckoApiKey}`
       );
       
       if (!response.ok) {
-        throw new Error("Failed to fetch coin prices from CoinGecko");
+        const errorText = await response.text();
+        throw new Error(`CoinGecko API error: ${response.status} - ${errorText}`);
       }
       return response.json();
     },
-    enabled: !!watchlist && watchlist.length > 0,
+    enabled: !!watchlist && watchlist.length > 0 && !!apiSettings?.coinGeckoApiKey,
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   // Search coins on CoinGecko
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
+    if (!apiSettings?.coinGeckoApiKey) {
+      toast({
+        title: "API Key Missing",
+        description: "Please configure CoinGecko API key in Admin Panel",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsSearching(true);
     try {
-      const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${searchQuery}`);
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/search?query=${searchQuery}&x_cg_demo_api_key=${apiSettings.coinGeckoApiKey}`
+      );
+      if (!response.ok) {
+        throw new Error(`Search failed: ${response.status}`);
+      }
       const data = await response.json();
       setSearchResults(data.coins?.slice(0, 10) || []);
     } catch (error) {
       toast({
         title: "Search Failed",
-        description: "Failed to search for coins",
+        description: "Failed to search for coins. Check your API key.",
         variant: "destructive",
       });
     } finally {

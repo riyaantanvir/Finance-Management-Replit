@@ -1700,11 +1700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Test CoinGecko API with a simple ping request
-      const response = await fetch(`https://api.coingecko.com/api/v3/ping`, {
-        headers: {
-          'x-cg-demo-api-key': apiKey
-        }
-      });
+      const response = await fetch(`https://api.coingecko.com/api/v3/ping?x_cg_demo_api_key=${apiKey}`);
 
       if (response.ok) {
         try {
