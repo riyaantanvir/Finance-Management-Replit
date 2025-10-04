@@ -525,6 +525,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync tags from CSV template
+  app.post("/api/tags/sync", async (req, res) => {
+    try {
+      const { csvData } = req.body;
+      
+      if (!csvData) {
+        return res.status(400).json({ message: "CSV data is required" });
+      }
+
+      // Parse CSV data
+      const lines = csvData.trim().split('\n').filter((line: string) => line.trim() !== '');
+      if (lines.length < 2) {
+        return res.status(400).json({ message: "CSV must have headers and at least one data row" });
+      }
+
+      // Validate header
+      const header = lines[0].toLowerCase();
+      if (!header.includes('main category') || !header.includes('sub-category')) {
+        return res.status(400).json({ 
+          message: "CSV must have 'Main Category' and 'Sub-Category' columns" 
+        });
+      }
+
+      // Skip header row and filter empty lines
+      const dataLines = lines.slice(1).filter((line: string) => line.trim() !== '');
+      
+      // Get existing tags to avoid duplicates
+      const existingMainTags = await storage.getAllMainTags();
+      const existingSubTags = await storage.getAllSubTags();
+      
+      let mainTagsCreated = 0;
+      let subTagsCreated = 0;
+      
+      // Track main tags we create/find in this session
+      const mainTagMap = new Map<string, string>(); // name -> id
+      
+      // Add existing main tags to map
+      existingMainTags.forEach(tag => {
+        mainTagMap.set(tag.name.toLowerCase(), tag.id);
+      });
+      
+      // Track created sub-tags to prevent duplicates within this sync
+      const createdSubTags = new Set<string>(); // Set of "mainTagId|subTagName" combinations
+      
+      // Add existing sub-tags to the set
+      existingSubTags.forEach(st => {
+        createdSubTags.add(`${st.mainTagId}|${st.name.toLowerCase()}`);
+      });
+      
+      const errors: string[] = [];
+      
+      for (let i = 0; i < dataLines.length; i++) {
+        const line = dataLines[i];
+        const parts = line.split(',');
+        
+        // Validate exactly 2 columns (reject embedded commas)
+        if (parts.length !== 2) {
+          if (parts.length < 2) {
+            errors.push(`Line ${i + 2}: Invalid format - must have exactly 2 columns (Main Category,Sub-Category)`);
+          } else {
+            errors.push(`Line ${i + 2}: Too many commas detected - ensure category names don't contain commas`);
+          }
+          continue;
+        }
+        
+        const mainCategory = parts[0].trim();
+        const subCategory = parts[1].trim();
+        
+        if (!mainCategory || !subCategory) {
+          errors.push(`Line ${i + 2}: Both Main Category and Sub-Category are required`);
+          continue;
+        }
+        
+        // Create main tag if it doesn't exist
+        let mainTagId = mainTagMap.get(mainCategory.toLowerCase());
+        if (!mainTagId) {
+          const newMainTag = await storage.createMainTag({
+            name: mainCategory,
+            description: `Auto-synced category: ${mainCategory}`
+          });
+          mainTagId = newMainTag.id;
+          mainTagMap.set(mainCategory.toLowerCase(), mainTagId);
+          mainTagsCreated++;
+        }
+        
+        // Create sub-tag if it doesn't exist (check both existing and newly created)
+        const subTagKey = `${mainTagId}|${subCategory.toLowerCase()}`;
+        if (!createdSubTags.has(subTagKey)) {
+          await storage.createSubTag({
+            name: subCategory,
+            mainTagId: mainTagId,
+            description: `Auto-synced subcategory: ${subCategory}`
+          });
+          createdSubTags.add(subTagKey);
+          subTagsCreated++;
+        }
+      }
+
+      res.json({ 
+        message: "Tags synced successfully", 
+        mainTagsCreated, 
+        subTagsCreated,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      console.error('Tag sync error:', error);
+      res.status(500).json({ 
+        message: "Failed to sync tags",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Payment method management routes
   app.get("/api/payment-methods", async (req, res) => {
     try {

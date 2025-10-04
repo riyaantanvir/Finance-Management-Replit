@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { insertMainTagSchema, insertSubTagSchema } from '@shared/schema';
-import { Plus, Edit, Trash2, ChevronRight, FolderOpen, Tag as TagIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronRight, FolderOpen, Tag as TagIcon, RefreshCw } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { z } from 'zod';
 
@@ -123,6 +123,41 @@ export function HierarchicalTagsManagement() {
     onError: () => toast({ title: 'Error', description: 'Failed to delete sub-tag', variant: 'destructive' }),
   });
 
+  // Sync tags from CSV template
+  const syncTagsMutation = useMutation({
+    mutationFn: async (csvData: string) => {
+      const response = await apiRequest('POST', '/api/tags/sync', { csvData });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/main-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sub-tags'] });
+      toast({ 
+        title: 'Success', 
+        description: `Synced ${data.mainTagsCreated || 0} main tags and ${data.subTagsCreated || 0} sub-tags` 
+      });
+    },
+    onError: () => toast({ title: 'Error', description: 'Failed to sync tags', variant: 'destructive' }),
+  });
+
+  const handleSyncTags = () => {
+    const csvTemplate = `Main Category,Sub-Category
+Family bazer,kacha bazer
+Family bazer,fish bazer
+Family bazer,grocery
+Transportation,taxi
+Transportation,bus
+Transportation,train
+Bills,electricity
+Bills,water
+Bills,internet
+Income,salary
+Income,freelance
+Income,investment`;
+    
+    syncTagsMutation.mutate(csvTemplate);
+  };
+
   // Forms
   const mainTagForm = useForm<z.infer<typeof insertMainTagSchema>>({
     resolver: zodResolver(insertMainTagSchema),
@@ -200,6 +235,16 @@ export function HierarchicalTagsManagement() {
               Create main categories and sub-categories for detailed expense tracking
             </CardDescription>
           </div>
+          <Button
+            onClick={handleSyncTags}
+            disabled={syncTagsMutation.isPending}
+            variant="outline"
+            size="sm"
+            data-testid="button-sync-tags"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncTagsMutation.isPending ? 'animate-spin' : ''}`} />
+            {syncTagsMutation.isPending ? 'Syncing...' : 'Sync Default Tags'}
+          </Button>
         </CardHeader>
       </Card>
 

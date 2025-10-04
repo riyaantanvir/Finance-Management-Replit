@@ -213,6 +213,33 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
 
   const formatCurrency = (amount: string) => `৳ ${parseFloat(amount).toLocaleString()}`;
 
+  // Build efficient lookup maps for category resolution
+  const mainTagMap = new Map(mainTags.map(mt => [mt.id, mt.name]));
+  const subTagMap = new Map(subTags.map(st => [st.id, { name: st.name, mainTagId: st.mainTagId }]));
+
+  // Helper function to get category display for an expense
+  const getCategoryDisplay = (expense: Expense) => {
+    if (expense.subTagId) {
+      const subTag = subTagMap.get(expense.subTagId);
+      if (subTag) {
+        const mainTagName = mainTagMap.get(subTag.mainTagId);
+        if (mainTagName) {
+          return {
+            main: mainTagName,
+            sub: subTag.name,
+            hasHierarchy: true
+          };
+        }
+      }
+    }
+    // Fallback for legacy tag or no category
+    return {
+      main: expense.tag || 'No category',
+      sub: null,
+      hasHierarchy: false
+    };
+  };
+
   // Pagination
   const totalPages = Math.ceil(expenses.length / perPage);
   const startIndex = (currentPage - 1) * perPage;
@@ -288,7 +315,7 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                     <TableHead>Type</TableHead>
                     <TableHead>Details</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Tag</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -368,25 +395,29 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                       </TableCell>
                       <TableCell>
                         {editingId === expense.id ? (
-                          <Select
-                            value={editData.tag || ''}
-                            onValueChange={(value) => setEditData({ ...editData, tag: value })}
-                          >
-                            <SelectTrigger className="w-28" data-testid={`select-edit-tag-${expense.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="home">Home</SelectItem>
-                              <SelectItem value="family">Family</SelectItem>
-                              <SelectItem value="business">Business</SelectItem>
-                              <SelectItem value="transport">Transport</SelectItem>
-                              <SelectItem value="food">Food</SelectItem>
-                              <SelectItem value="entertainment">Entertainment</SelectItem>
-                              <SelectItem value="healthcare">Healthcare</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <span className="text-sm text-muted-foreground">
+                            Edit in form
+                          </span>
                         ) : (
-                          <span data-testid={`text-tag-${expense.id}`}>{expense.tag}</span>
+                          <div className="flex flex-col" data-testid={`text-category-${expense.id}`}>
+                            {(() => {
+                              const category = getCategoryDisplay(expense);
+                              return category.hasHierarchy ? (
+                                <>
+                                  <span className="text-sm font-medium">
+                                    {category.main}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    → {category.sub}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-sm text-muted-foreground italic">
+                                  {category.main}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell>
