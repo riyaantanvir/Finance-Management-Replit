@@ -9,7 +9,7 @@ import { Edit, Trash2, Download } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Expense, ExchangeRate, SettingsFinance, PaymentMethod } from "@shared/schema";
+import { Expense, ExchangeRate, SettingsFinance, PaymentMethod, MainTag, SubTag } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
 interface ExpenseTableProps {
@@ -81,6 +81,15 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     queryKey: ["/api/payment-methods"],
   });
 
+  // Fetch hierarchical tags for export
+  const { data: mainTags = [] } = useQuery<MainTag[]>({
+    queryKey: ["/api/main-tags"],
+  });
+
+  const { data: subTags = [] } = useQuery<SubTag[]>({
+    queryKey: ["/api/sub-tags"],
+  });
+
   // Currency conversion function
   const convertToBaseCurrency = (amount: number, fromCurrency: string): number => {
     const baseCurrency = financeSettings?.baseCurrency || 'BDT';
@@ -115,8 +124,8 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     try {
       const baseCurrency = financeSettings?.baseCurrency || 'BDT';
       
-      // Create CSV headers matching the template  
-      const headers = ['Date', 'Type', 'Details', `Amount (${baseCurrency})`, 'Tag', 'Payment Method'];
+      // Create CSV headers matching the template with hierarchical tags
+      const headers = ['Date', 'Type', 'Details', `Amount (${baseCurrency})`, 'Main Category', 'Sub-Category', 'Payment Method'];
       
       // Process expense data
       const csvData = expenses.map(expense => {
@@ -127,12 +136,28 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
         // Convert amount to base currency
         const convertedAmount = convertToBaseCurrency(parseFloat(expense.amount), expenseCurrency);
         
+        // Get tag names from subTagId
+        let mainCategoryName = expense.tag || ''; // Fallback to legacy tag
+        let subCategoryName = '';
+        
+        if (expense.subTagId) {
+          const subTag = subTags.find(st => st.id === expense.subTagId);
+          if (subTag) {
+            subCategoryName = subTag.name;
+            const mainTag = mainTags.find(mt => mt.id === subTag.mainTagId);
+            if (mainTag) {
+              mainCategoryName = mainTag.name;
+            }
+          }
+        }
+        
         return [
           expense.date,
           expense.type,
           expense.details,
           convertedAmount.toFixed(2),
-          expense.tag,
+          mainCategoryName,
+          subCategoryName,
           expense.paymentMethod
         ];
       });

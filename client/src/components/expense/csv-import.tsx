@@ -4,17 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Download, AlertCircle, CheckCircle } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import type { MainTag, SubTag } from "@shared/schema";
 
 interface CSVExpense {
   date: string;
   type: string;
   details: string;
   amount: string;
-  tag: string;
+  mainCategory: string;
+  subCategory: string;
   paymentMethod: string;
 }
 
@@ -26,8 +28,48 @@ export default function CSVImport() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Fetch main tags and sub-tags for mapping
+  const { data: mainTags = [] } = useQuery<MainTag[]>({
+    queryKey: ["/api/main-tags"],
+  });
+
+  const { data: subTags = [] } = useQuery<SubTag[]>({
+    queryKey: ["/api/sub-tags"],
+  });
+
   const importMutation = useMutation({
-    mutationFn: (data: CSVExpense[]) => apiRequest("POST", "/api/expenses/bulk", { expenses: data }),
+    mutationFn: (data: CSVExpense[]) => {
+      // Map category names to subTagId
+      const expensesWithSubTagId = data.map(expense => {
+        // Find main tag by name (case-insensitive)
+        const mainTag = mainTags.find(mt => 
+          mt.name.toLowerCase() === expense.mainCategory.toLowerCase()
+        );
+        
+        if (!mainTag) {
+          throw new Error(`Main category "${expense.mainCategory}" not found. Please create it in Admin Panel first.`);
+        }
+
+        // Find sub-tag by name and main tag ID (case-insensitive)
+        const subTag = subTags.find(st => 
+          st.mainTagId === mainTag.id && 
+          st.name.toLowerCase() === expense.subCategory.toLowerCase()
+        );
+        
+        if (!subTag) {
+          throw new Error(`Sub-category "${expense.subCategory}" not found under "${expense.mainCategory}". Please create it in Admin Panel first.`);
+        }
+
+        // Return expense with subTagId and without category names
+        const { mainCategory, subCategory, ...rest } = expense;
+        return {
+          ...rest,
+          subTagId: subTag.id,
+        };
+      });
+
+      return apiRequest("POST", "/api/expenses/bulk", { expenses: expensesWithSubTagId });
+    },
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
@@ -84,15 +126,15 @@ export default function CSVImport() {
       return { data, errors };
     }
 
-    // Expected headers
-    const expectedHeaders = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Tag', 'Payment Method'];
+    // Expected headers for hierarchical tags
+    const expectedHeaders = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Main Category', 'Sub-Category', 'Payment Method'];
     const headers = parseCSVLine(lines[0]);
 
     // Validate headers
     const headerMapping: { [key: string]: number } = {};
-    expectedHeaders.forEach((expected, index) => {
+    expectedHeaders.forEach((expected) => {
       const actualIndex = headers.findIndex(h => 
-        h.toLowerCase().includes(expected.toLowerCase().replace(' (BDT)', ''))
+        h.toLowerCase().includes(expected.toLowerCase().replace(' (BDT)', '').replace('-', ''))
       );
       if (actualIndex === -1) {
         errors.push(`Missing required column: ${expected}`);
@@ -119,7 +161,8 @@ export default function CSVImport() {
         type: cells[headerMapping['Type']]?.toLowerCase() || '',
         details: cells[headerMapping['Details']] || '',
         amount: cells[headerMapping['Amount (BDT)']] || '',
-        tag: cells[headerMapping['Tag']]?.toLowerCase() || '',
+        mainCategory: cells[headerMapping['Main Category']]?.trim() || '',
+        subCategory: cells[headerMapping['Sub-Category']]?.trim() || '',
         paymentMethod: cells[headerMapping['Payment Method']]?.toLowerCase().replace(/\s+/g, '') || '',
       };
 
@@ -144,13 +187,19 @@ export default function CSVImport() {
         continue;
       }
 
-      // Validate tag (allow any non-empty tag)
-      if (!expense.tag || expense.tag.trim() === '') {
-        errors.push(`Row ${i + 1}: Tag is required`);
+      // Validate main category
+      if (!expense.mainCategory || expense.mainCategory.trim() === '') {
+        errors.push(`Row ${i + 1}: Main Category is required`);
         continue;
       }
 
-      // Validate payment method (allow any non-empty payment method)
+      // Validate sub-category
+      if (!expense.subCategory || expense.subCategory.trim() === '') {
+        errors.push(`Row ${i + 1}: Sub-Category is required`);
+        continue;
+      }
+
+      // Validate payment method
       if (!expense.paymentMethod || expense.paymentMethod.trim() === '') {
         errors.push(`Row ${i + 1}: Payment Method is required`);
         continue;
@@ -194,8 +243,8 @@ export default function CSVImport() {
   };
 
   const downloadTemplate = () => {
-    const headers = "Date,Type,Details,Amount (BDT),Tag,Payment Method\n";
-    const sample = "2024-01-15,expense,Lunch at restaurant,1200,dining,cash\n2024-01-15,income,Freelance payment,50000,business,bank transfer\n2024-01-16,expense,Uber ride,350,transport,bkash";
+    const headers = "Date,Type,Details,Amount (BDT),Main Category,Sub-Category,Payment Method\n";
+    const sample = "2024-01-15,expense,Kacha Bazer,1200,Family bazer,kacha bazer,cash\n2024-01-15,expense,Fish purchase,800,Family bazer,fish bazer,cash\n2024-01-16,expense,Uber ride,350,Transportation,taxi,bkash\n2024-01-17,income,Salary,50000,Income,salary,bank transfer";
     const csvContent = headers + sample;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
