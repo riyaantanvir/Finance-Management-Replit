@@ -26,7 +26,7 @@ export default function DeleteAllButton() {
   const deleteAllMutation = useMutation({
     mutationFn: () => {
       const sessionId = localStorage.getItem('sessionId');
-      return apiRequest("DELETE", `/api/expenses?sessionId=${sessionId}`, null);
+      return apiRequest("DELETE", "/api/expenses", { sessionId });
     },
     onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
