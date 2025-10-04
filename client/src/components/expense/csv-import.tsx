@@ -38,41 +38,68 @@ export default function CSVImport() {
   });
 
   const importMutation = useMutation({
-    mutationFn: (data: CSVExpense[]) => {
-      // Map category names to subTagId
-      const expensesWithSubTagId = data.map(expense => {
-        // Find main tag by name (case-insensitive)
-        const mainTag = mainTags.find(mt => 
-          mt.name.toLowerCase() === expense.mainCategory.toLowerCase()
-        );
-        
-        if (!mainTag) {
-          throw new Error(`Main category "${expense.mainCategory}" not found. Please create it in Admin Panel first.`);
-        }
-
-        // Find sub-tag by name and main tag ID (case-insensitive)
-        const subTag = subTags.find(st => 
-          st.mainTagId === mainTag.id && 
-          st.name.toLowerCase() === expense.subCategory.toLowerCase()
-        );
-        
-        if (!subTag) {
-          throw new Error(`Sub-category "${expense.subCategory}" not found under "${expense.mainCategory}". Please create it in Admin Panel first.`);
-        }
-
-        // Return expense with subTagId and without category names
-        const { mainCategory, subCategory, ...rest } = expense;
-        return {
-          ...rest,
-          subTagId: subTag.id,
-        };
+    mutationFn: async (data: CSVExpense[]) => {
+      // Auto-create categories and map to subTagId
+      const sessionId = localStorage.getItem('sessionId');
+      const expensesWithSubTagId = [];
+      
+      // Track created categories to avoid duplicates within this import
+      const createdMainTags = new Map<string, string>(); // name -> id
+      const createdSubTags = new Map<string, string>(); // "mainTagId|subTagName" -> id
+      
+      // Initialize with existing tags
+      mainTags.forEach(mt => {
+        createdMainTags.set(mt.name.toLowerCase(), mt.id);
       });
+      subTags.forEach(st => {
+        createdSubTags.set(`${st.mainTagId}|${st.name.toLowerCase()}`, st.id);
+      });
+      
+      for (const expense of data) {
+        const mainCategoryName = expense.mainCategory.trim();
+        const subCategoryName = expense.subCategory.trim();
+        
+        // Get or create main tag
+        let mainTagId = createdMainTags.get(mainCategoryName.toLowerCase());
+        if (!mainTagId) {
+          const newMainTag: any = await apiRequest("POST", "/api/main-tags", {
+            sessionId,
+            name: mainCategoryName,
+            description: `Auto-created from CSV import`
+          });
+          mainTagId = newMainTag.id;
+          createdMainTags.set(mainCategoryName.toLowerCase(), mainTagId);
+        }
+        
+        // Get or create sub-tag
+        const subTagKey = `${mainTagId}|${subCategoryName.toLowerCase()}`;
+        let subTagId = createdSubTags.get(subTagKey);
+        if (!subTagId) {
+          const newSubTag: any = await apiRequest("POST", "/api/sub-tags", {
+            sessionId,
+            name: subCategoryName,
+            mainTagId: mainTagId,
+            description: `Auto-created from CSV import`
+          });
+          subTagId = newSubTag.id;
+          createdSubTags.set(subTagKey, subTagId);
+        }
+        
+        // Add expense with subTagId
+        const { mainCategory, subCategory, ...rest } = expense;
+        expensesWithSubTagId.push({
+          ...rest,
+          subTagId: subTagId,
+        });
+      }
 
       return apiRequest("POST", "/api/expenses/bulk", { expenses: expensesWithSubTagId });
     },
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/main-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sub-tags"] });
       setFile(null);
       setPreview([]);
       setErrors([]);
