@@ -60,26 +60,28 @@ export default function CSVImport() {
         const subCategoryName = expense.subCategory.trim();
         
         // Get or create main tag
-        let mainTagId = createdMainTags.get(mainCategoryName.toLowerCase());
+        let mainTagId: string = createdMainTags.get(mainCategoryName.toLowerCase()) || '';
         if (!mainTagId) {
           const newMainTag: any = await apiRequest("POST", "/api/main-tags", {
             name: mainCategoryName,
             description: `Auto-created from CSV import`
           });
-          mainTagId = newMainTag.id;
+          mainTagId = newMainTag.id as string;
           createdMainTags.set(mainCategoryName.toLowerCase(), mainTagId);
         }
         
         // Get or create sub-tag
         const subTagKey = `${mainTagId}|${subCategoryName.toLowerCase()}`;
-        let subTagId = createdSubTags.get(subTagKey);
+        let subTagId: string = createdSubTags.get(subTagKey) || '';
         if (!subTagId) {
-          const newSubTag: any = await apiRequest("POST", "/api/sub-tags", {
+          const subTagPayload = {
             name: subCategoryName,
             mainTagId: mainTagId,
             description: `Auto-created from CSV import`
-          });
-          subTagId = newSubTag.id;
+          };
+          console.log("Creating sub-tag with payload:", subTagPayload);
+          const newSubTag: any = await apiRequest("POST", "/api/sub-tags", subTagPayload);
+          subTagId = newSubTag.id as string;
           createdSubTags.set(subTagKey, subTagId);
         }
         
