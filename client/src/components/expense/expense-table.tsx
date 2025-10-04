@@ -226,17 +226,15 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
         if (mainTagName) {
           return {
             main: mainTagName,
-            sub: subTag.name,
-            hasHierarchy: true
+            sub: subTag.name
           };
         }
       }
     }
-    // Fallback for legacy tag or no category
+    // For legacy expenses, show tag as main and empty sub-category
     return {
       main: expense.tag || 'No category',
-      sub: null,
-      hasHierarchy: false
+      sub: '' // Always show sub-category line, even if blank
     };
   };
 
@@ -402,19 +400,15 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                           <div className="flex flex-col" data-testid={`text-category-${expense.id}`}>
                             {(() => {
                               const category = getCategoryDisplay(expense);
-                              return category.hasHierarchy ? (
+                              return (
                                 <>
                                   <span className="text-sm font-medium">
                                     {category.main}
                                   </span>
                                   <span className="text-xs text-muted-foreground">
-                                    → {category.sub}
+                                    → {category.sub || '—'}
                                   </span>
                                 </>
-                              ) : (
-                                <span className="text-sm text-muted-foreground italic">
-                                  {category.main}
-                                </span>
                               );
                             })()}
                           </div>
