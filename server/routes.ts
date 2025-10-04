@@ -446,7 +446,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid request data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create main tag" });
+        console.error("Error creating main tag:", error);
+        res.status(500).json({ message: "Failed to create main tag", error: error instanceof Error ? error.message : String(error) });
       }
     }
   });
@@ -512,7 +513,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid request data", errors: error.errors });
       } else {
-        res.status(500).json({ message: "Failed to create sub tag" });
+        console.error("Error creating sub tag:", error);
+        res.status(500).json({ message: "Failed to create sub tag", error: error instanceof Error ? error.message : String(error) });
       }
     }
   });
