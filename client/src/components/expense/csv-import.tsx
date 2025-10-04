@@ -133,9 +133,11 @@ export default function CSVImport() {
     // Validate headers
     const headerMapping: { [key: string]: number } = {};
     expectedHeaders.forEach((expected) => {
-      const actualIndex = headers.findIndex(h => 
-        h.toLowerCase().includes(expected.toLowerCase().replace(' (BDT)', '').replace('-', ''))
-      );
+      const normalizedExpected = expected.toLowerCase().replace(' (bdt)', '').replace(/-/g, '').replace(/\s+/g, '');
+      const actualIndex = headers.findIndex(h => {
+        const normalizedActual = h.toLowerCase().replace(' (bdt)', '').replace(/-/g, '').replace(/\s+/g, '');
+        return normalizedActual === normalizedExpected || normalizedActual.includes(normalizedExpected);
+      });
       if (actualIndex === -1) {
         errors.push(`Missing required column: ${expected}`);
       } else {

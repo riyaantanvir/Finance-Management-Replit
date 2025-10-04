@@ -1,0 +1,231 @@
+Date,Type,Details,Amount (BDT),Main Category,Sub-Category,Payment Method
+2025-10-04,expense,test,100,Bills,electricity,bcash
+2025-10-03,expense,smsbd,500,softwere,SMS API,bcash
+2025-10-02,expense,Soft replit,2000,softwere,Replit,bcash
+2025-10-02,expense,t nc,280,c n t,Coffee,cash
+2025-10-01,expense,Regular monthly Bazer,1200,family bazer,Monthly Basic,cash
+2025-10-01,expense,Hash,750,family bazer,Hash,cash
+2025-10-01,expense,Kacha bazer,270,family bazer,Kacha Bazer,cash
+2025-10-01,expense,tnc,500,c n t,Group Bill,cash
+2025-10-01,expense,Dim,330,family bazer,Egg,cash
+2025-09-30,expense,riksha,50,transport,Rikhsaa,cash
+2025-09-30,expense,Extra others,5000,others essential,Others Cost,cash
+2025-09-30,expense,tnc,140,c n t,Tea,cash
+2025-09-30,expense,"Badhal berano, Home food",2500,family and gift,Family Invitation,cash
+2025-09-30,expense,Bagerhat to Badhal,260,transport,Family Invitation,cash
+2025-09-30,expense,home snacks,980,grocery,Home Monthly,cash
+2025-09-28,expense,Ai webapp maker,12276,softwere,Replit,creditcard
+2025-09-27,expense,Tax,3500,family and gift,Family Tax,cash
+2025-09-27,expense,t nc,200,c n t,Group Bill,cash
+2025-09-26,expense,Family Bazer,5000,family bazer,Monthly Basic,cash
+2025-09-26,expense,Bazer,6000,family bazer,Kacha Bazer,cash
+2025-09-26,expense,T n C,1000,c n t,Group Bill,cash
+2025-09-25,expense,Med for tahin,40,medicine n dr,medicine,cash
+2025-09-24,expense,Home food,300,home snacks,Toast,cash
+2025-09-24,expense,grocery,740,grocery,Etc,cash
+2025-09-24,expense,Vagitables,40,family bazer,Kacha Bazer,cash
+2025-09-24,expense,Loan,4000,loan,Sajib,cash
+2025-09-24,expense,t n C,400,c n t,Group Bill,cash
+2025-09-23,expense,Tanzima home,1400,family and gift,Personal tanz,cash
+2025-09-23,expense,Transport ammu,200,transport,Rikhsaa,cash
+2025-09-23,expense,Chiken fry home,1000,home snacks,Chikken Fry,cash
+2025-09-22,expense,Bazer,4500,family bazer,Kacha Bazer,bcash
+2025-09-22,expense,Replit bill,4960,softwere,Replit,creditcard
+2025-09-22,expense,Replit,1860,softwere,Replit,creditcard
+2025-09-22,expense,t n c,200,c n t,Coffee,cash
+2025-09-22,expense,T n C,150,c n t,Group Bill,cash
+2025-09-21,expense,gash,1350,family issential,Gass,cash
+2025-09-21,expense,t nc,30,c n t,Cigarette,cash
+2025-09-21,expense,Donation boro kaku,1600,donation,Donation Family,cash
+2025-09-21,expense,tnc,200,c n t,Group Bill,cash
+2025-09-21,expense,T n C,110,c n t,Coffee,cash
+2025-09-21,expense,Home snacks,590,home snacks,Others,cash
+2025-09-20,expense,Selun,200,others essential,Selun,cash
+2025-09-20,expense,Riksha,20,transport,Rikhsaa,cash
+2025-09-20,expense,t n c,30,c n t,Cigarette,cash
+2025-09-19,expense,Riksha to doshani,30,transport,Rikhsaa,cash
+2025-09-19,expense,Bazer,120,family bazer,Kacha Bazer,cash
+2025-09-19,expense,cig and tea,100,c n t,Group Bill,cash
+2025-09-19,expense,sobji,60,family bazer,Kacha Bazer,cash
+2025-09-19,expense,pepe,110,family bazer,Kacha Bazer,cash
+2025-09-19,expense,T n C,350,c n t,Group Bill,cash
+2025-09-19,expense,"gajor, sobji",170,family bazer,Kacha Bazer,cash
+2025-09-19,expense,sajib vai gift,297,giveway,Sajib,bcash
+2025-09-18,expense,Tanz pocket money,300,tanzu pocket money,Personal Tanz,cash
+2025-09-18,expense,Ciggarates to gher,200,c n t,Group Bill,cash
+2025-09-18,expense,Ammu test Dr,700,medicine n dr,Ammu Dr,cash
+2025-09-18,expense,Home food,320,family and gift,Snacks Item,cash
+2025-09-16,expense,Facebook subs,1471,subscription,Facebook,creditcard
+2025-09-14,expense,youtube,499,subscription,Youtube,creditcard
+2025-09-11,expense,Trip Kuakata Bus dhaka,3272,trip,Trip Bus,n/a
+2025-09-11,expense,mobilr load,100,trip,Trip CNG,n/a
+2025-09-11,expense,Kuakata local trans,1000,trip,Trip Expense,n/a
+2025-09-11,expense,Kuakata bike oil,200,trip,Trip Expense,n/a
+2025-09-11,expense,Rabby loan,2700,loan,Rabby Loan,n/a
+2025-09-11,expense,T n C,1000,trip,Trip T n C,n/a
+2025-09-11,expense,Kuakata to bagerhat,2000,trip,Trip Bus,n/a
+2025-09-11,expense,Internet bill,1200,internet,Home Internet,n/a
+2025-09-11,expense,Sutki,1100,trip,Trip Expense,n/a
+2025-09-11,expense,Achar,1000,trip,Trip Expense,n/a
+2025-09-11,expense,mobilr load,499,phone bill,My Phone bill,n/a
+2025-09-11,expense,Food all,5000,trip,Trip Expense,n/a
+2025-09-11,expense,Nasrul gift,1655,giveway,Nasrul,n/a
+2025-09-11,expense,mobile load,29,phone bill,Personal,n/a
+2025-09-11,expense,Simanto loan,5000,loan,Simanto,n/a
+2025-09-11,expense,Seat Vara,500,trip,Trip Expense,n/a
+2025-09-11,expense,Phone bill,100,phone bill,My Phone bill,n/a
+2025-09-11,expense,Trip Kuakata Uber,400,trip,Trip Expense,n/a
+2025-09-11,expense,Trip Kuakata ess food,400,trip,Trip Expense,n/a
+2025-09-10,expense,Hotel Greaver in,18000,trip,Trip Expense,n/a
+2025-09-10,expense,Hotel Beach view,12000,trip,Trip Expense,n/a
+2025-09-09,expense,chatgpt,2500,subscription,ChatGPT,creditcard
+2025-09-08,expense,Tanzima,2000,tanzu pocket money,Personal tanz,n/a
+2025-09-06,expense,Transport,1000,transport,Bus,n/a
+2025-09-06,expense,Phone bill,100,phone bill,Personal Phone,n/a
+2025-09-06,expense,Gari,1800,family and gift,Bus,n/a
+2025-09-06,expense,T n C,1000,c n t,Group Bill,n/a
+2025-09-06,expense,Phone bill Ammu,419,phone bill,Phone bill Ammu,n/a
+2025-09-06,expense,Phone bill tan,100,phone bill,Phone bill tan,n/a
+2025-09-06,expense,Ammu Uber,400,family and gift,Uber,n/a
+2025-09-05,expense,Skincare Tanzima,2220,gadget,Personal tanz,n/a
+2025-09-04,expense,Gadget Tanzima,2960,gadget,Personal tanz,n/a
+2025-09-04,expense,Rikhsa,50,transport,Rikhsaa,n/a
+2025-09-04,expense,Resturent,500,resturent,Others Resturent,n/a
+2025-09-04,expense,Rikhsa,40,transport,Rikhsaa,n/a
+2025-09-03,expense,Abbu,5000,home improvement,Home Abbu,n/a
+2025-09-03,expense,Food,200,resturent,Others Resturent,n/a
+2025-09-03,expense,Riksha,250,transport,Rikhsaa,n/a
+2025-09-03,expense,T n C,220,c n t,Group Bill,n/a
+2025-09-02,expense,Riksha to loundry,70,transport,Rikhsaa,n/a
+2025-09-02,expense,loundry bill,1500,family issential,Personal,n/a
+2025-09-01,expense,Best buy shopping,4210,family and gift,Personal,n/a
+2025-09-01,expense,Resturent to Office,20,transport,Rikhsaa,n/a
+2025-09-01,expense,Riksha to resturent,20,transport,Rikhsaa,n/a
+2025-09-01,expense,Riksha to best buy,30,transport,Rikhsaa,n/a
+2025-09-01,expense,Riksha to meradia,40,transport,Rikhsaa,n/a
+2025-09-01,expense,Genaral store,400,resturent,Others Resturent,n/a
+2025-09-01,expense,Riksha to office,40,transport,Rikhsaa,n/a
+2025-08-31,expense,Movie,800,pocket money,Movie,n/a
+2025-08-31,expense,Bosundhora city transport,400,transport,Uber,n/a
+2025-08-31,expense,Harddisk,6000,gadget,Personal Gadget,n/a
+2025-08-31,expense,Shopping,1300,personal shopping,Personal Shopping,n/a
+2025-08-31,expense,Cineplex - food,600,entertainment,Cineplex,n/a
+2025-08-31,expense,Bosundhora city transport,400,transport,Uber,n/a
+2025-08-31,expense,Food,150,resturent,Others Resturent,n/a
+2025-08-26,expense,Abbu,1500,family and gift,Abbu,n/a
+2025-08-20,expense,Family giveway,240,family and gift,Abbu,n/a
+2025-08-20,expense,Abbuu Jomi,1200,family issential,Land Bill,n/a
+2025-08-20,expense,t nc,300,c n t,Group Bill,n/a
+2025-08-20,expense,Riksha,10,transport,Rikhsaa,n/a
+2025-08-19,expense,Hijab,400,family and gift,Shopping,n/a
+2025-08-19,expense,t nc,225,c n t,Group Bill,n/a
+2025-08-19,expense,ammu sari,2500,family and gift,Shopping,n/a
+2025-08-19,expense,"Kouta,box, cha etc",420,family issential,Shopping,n/a
+2025-08-19,expense,home snacks,500,home snacks,Snacks Item,n/a
+2025-08-19,expense,Bani,1250,family and gift,Shopping,n/a
+2025-08-19,expense,Chiit,1300,family and gift,Shopping,n/a
+2025-08-19,expense,juta,260,family and gift,Shopping,n/a
+2025-08-19,expense,Bike oil,500,family and gift,Bike,n/a
+2025-08-19,expense,Resturent bill vumi,1000,resturent,Bhumii,n/a
+2025-08-18,expense,T n C,400,c n t,Group Bill,n/a
+2025-08-18,expense,T n C,25,c n t,Cigarette,n/a
+2025-08-18,expense,Medicine,70,medicine n dr,Medicine,n/a
+2025-08-17,expense,Home snacks food,300,home snacks,Snacks Item,n/a
+2025-08-17,expense,Sajib vai phone load,280,giveway,Sajib,n/a
+2025-08-17,expense,Home snacks food,400,home snacks,Snacks Item,n/a
+2025-08-17,expense,Tnc,200,c n t,Group Bill,n/a
+2025-08-17,expense,Tanzima Phone load,100,phone bill,Phone bill Tanzima,n/a
+2025-08-16,expense,T n C,400,c n t,Group Bill,n/a
+2025-08-15,expense,T n C,500,c n t,Group Bill,n/a
+2025-08-15,expense,Ammu,1000,giveway,Ammu,n/a
+2025-08-15,expense,Home food,400,home snacks,Snacks Item,n/a
+2025-08-14,expense,T n C,50,c n t,Cigarette,n/a
+2025-08-14,expense,Kacchi Vai dinner,1000,resturent,Others Resturent,n/a
+2025-08-14,expense,Dholaipar rikhsa,30,transport,Rikhsaa,n/a
+2025-08-14,expense,CNG vara dholaipar,350,transport,CNG,n/a
+2025-08-14,expense,Rikhsha to Meradia,40,transport,Rikhsaa,n/a
+2025-08-14,expense,Rikhsha to afbab,40,transport,RikhsaaRikhsaa,n/a
+2025-08-14,expense,Computer Gadget,500,gadget,Cable,n/a
+2025-08-14,expense,Rikhsha to afbab,40,transport,Rikhsaa,n/a
+2025-08-14,expense,Rikhsha to Meradia,40,transport,Rikhsaa,n/a
+2025-08-14,expense,Bustand to basha,50,transport,Rikhsaa,n/a
+2025-08-14,expense,Bustand to basha,50,transport,Rikhsaa,n/a
+2025-08-14,expense,Dhaka Bagerhat bus,1300,transport,Bus,n/a
+2025-08-14,expense,Kacchi Vai dinner,1000,resturent,Others Resturent,n/a
+2025-08-14,expense,Dholaipar rikhsa,40,transport,Rikhsaa,n/a
+2025-08-14,expense,T n C,50,c n t,Cigarette,n/a
+2025-08-14,expense,Dhaka Bagerhat bus,1300,transport,Bus,n/a
+2025-08-14,expense,CNG vara dholaipar,350,transport,CNG,n/a
+2025-08-14,expense,Rikhsha to afbab,40,transport,Rikhsaa,n/a
+2025-08-14,expense,Dholaipar rikhsa,30,transport,Rikhsaa,n/a
+2025-08-14,expense,Rikhsha to afbab,40,transport,Rikhsaa,n/a
+2025-08-14,expense,Computer Gadget,500,gadget,Cable,n/a
+2025-08-14,expense,Dholaipar rikhsa,40,transport,Rikhsaa,n/a
+2025-08-13,expense,water board,30,transport,Rikhsaa,n/a
+2025-08-13,expense,Riksha,60,transport,Rikhsaa,n/a
+2025-08-13,expense,Jawad,2000,jawad,Jawad,n/a
+2025-08-13,expense,Sabbir,100,giveway,Sabbir,n/a
+2025-08-13,expense,rikshs,100,transport,Rikhsaa,n/a
+2025-08-13,expense,T n C,300,c n t,Group Bill,n/a
+2025-08-13,expense,Lunch,650,resturent,Others Resturent,n/a
+2025-08-12,expense,RESTURENT,1000,resturent,Others Resturent,n/a
+2025-08-12,expense,T N C,80,c n t,Cigarette,n/a
+2025-08-12,expense,Food lunch,400,resturent,Others Resturent,n/a
+2025-08-12,expense,Transport,80,transport,Rikhsaa,n/a
+2025-08-11,expense,Food lunch,550,resturent,Others Resturent,n/a
+2025-08-11,expense,Bike Jomuna to aftab,200,transport,Uber,n/a
+2025-08-11,expense,Watch Screen,250,gadget,Watch Gadget,n/a
+2025-08-11,expense,Keyboard Mouse,6000,gadget,Laptop Gadget,n/a
+2025-08-11,expense,Rikhsa to office,40,transport,Rikhsaa,n/a
+2025-08-11,expense,Laptop screen protector,1000,gadget,Laptop Gadget,n/a
+2025-08-11,expense,Bike rent Jomuna,250,transport,Rikhsaa,n/a
+2025-08-11,expense,Food Night office,300,resturent,Others Resturent,n/a
+2025-08-11,expense,Riksha,30,transport,Rikhsaa,n/a
+2025-08-11,expense,T n C,400,c n t,Group Bill,n/a
+2025-08-10,expense,T n C,210,c n t,Group Bill,n/a
+2025-08-10,expense,Rikhsa tohome,40,transport,Rikhsaa,n/a
+2025-08-10,expense,Peronsal buy,200,pocket money,Personal Cost,n/a
+2025-08-10,expense,T n C,400,c n t,Group Bill,n/a
+2025-08-10,expense,Rikhsa to office,50,transport,Rikhsaa,n/a
+2025-08-10,expense,Rikhsa to office,50,transport,Rikhsaa,n/a
+2025-08-09,expense,Snacks tah',50,family and gift,Snacks Item,n/a
+2025-08-09,expense,C n T,650,c n t,Group Bill,n/a
+2025-08-09,expense,Transport - Dhaka,1050,transport,Bus,n/a
+2025-08-09,expense,Tanzima,1000,tanzu pocket money,Tanz Personal,n/a
+2025-08-09,expense,Jawad,3060,jawad,Jawad,n/a
+2025-08-08,expense,C n T,50,c n t,Cigarette,n/a
+2025-08-08,expense,Home,350,family and gift,Snacks Item,n/a
+2025-08-07,expense,Loan Anu da,1020,loan,Anu,n/a
+2025-08-07,expense,Gher,500,gher,Gher,n/a
+2025-08-07,expense,C n T,200,c n t,Group Bill,n/a
+2025-08-06,expense,SSR JM,15000,others essential,Others,n/a
+2025-08-06,expense,Laptop Charger Abbu,1300,family and gift,Gadget Abbu,n/a
+2025-08-06,expense,C n T,100,pocket money,cigarette,n/a
+2025-08-05,expense,C n T,420,pocket money,cigarette,n/a
+2025-08-05,expense,Sajib Vai loan,5000,loan,Sajib,n/a
+2025-08-05,expense,Medicine,90,medicine n dr,Medicine,n/a
+2025-08-05,expense,C n T,180,pocket money,cigarette,n/a
+2025-08-05,expense,Home snacks food,300,home snacks,Snacks Item,n/a
+2025-08-04,expense,Group Bill,500,pocket money,Others Resturent,n/a
+2025-08-04,expense,Vaia to sumon vai,500,pocket money,SumonVaiya,n/a
+2025-08-04,expense,Home snacks food,300,home snacks,Snacks Item,n/a
+2025-08-04,expense,Home snacks food,350,home snacks,Snacks Item,n/a
+2025-08-04,expense,Mobile recharge Sajib Vai,297,loan,Sajib,n/a
+2025-08-04,expense,Mobile recharge personal,599,phone bill,Personal Load,n/a
+2025-08-04,expense,Bike oil,300,family and gift,Abbu Bike,n/a
+2025-08-03,expense,Jawad to buy some food,2040,jawad,Jawad,n/a
+2025-08-03,expense,Bus others (Takerhat),1500,business purpus,Bus,n/a
+2025-08-03,expense,Abbu,10000,family bazer,Bazer Abbu,n/a
+2025-08-02,expense,Trip,14340,trip,Trip Expense,n/a
+2025-08-02,expense,Trip Gari vara,700,trip,Trip Expense,n/a
+2025-07-31,expense,Mobile ammu,2420,family and gift,Load Ammu,n/a
+2025-07-31,expense,Saiful Vai gher,5000,gher,Gher,n/a
+2025-07-31,expense,Sof VEO 3,3060,skill dev,VEO 3,n/a
+2025-07-31,expense,Jawad,8000,jawad,Jawad,n/a
+2025-07-31,expense,Others Expence,10000,others essential,Others Essential,n/a
+2025-07-31,expense,Abbu,5000,family bazer,Bazer Abbu,n/a
+2025-07-31,expense,Gher,15200,gher,Gher,n/a
+2025-07-31,expense,Bazer family,5000,family bazer,Fish,n/a
+2025-07-31,expense,Ultimate organic,9253,pocket money,Personal Health,n/a
+2025-07-31,expense,Sadik,2000,loan,Sadik,n/a
+2025-07-31,expense,Bike,1500,family and gift,Abbu Bike,n/a
