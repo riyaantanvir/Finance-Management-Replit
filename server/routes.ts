@@ -659,6 +659,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mainTagMap.set(tag.name.toLowerCase(), tag.id);
       });
       
+      // Create a map for sub-tag lookup by ID
+      const subTagById = new Map<string, { name: string; mainTagId: string }>();
+      existingSubTags.forEach(st => {
+        subTagById.set(st.id, { name: st.name, mainTagId: st.mainTagId });
+      });
+      
       // Track created sub-tags to prevent duplicates within this sync
       const createdSubTags = new Set<string>(); // Set of "mainTagId|subTagName" combinations
       
@@ -670,24 +676,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract unique category combinations from expenses
       for (const expense of expenses) {
         if (expense.subTagId) {
-          // This expense already has hierarchical tags, skip it
-          continue;
-        }
-        
-        // For legacy expenses with only tag field
-        if (expense.tag && expense.tag.trim()) {
-          const tagName = expense.tag.trim();
-          
-          // Create main tag if it doesn't exist
-          let mainTagId = mainTagMap.get(tagName.toLowerCase());
-          if (!mainTagId) {
-            const newMainTag = await storage.createMainTag({
-              name: tagName,
-              description: `Synced from expense data`
-            });
-            mainTagId = newMainTag.id;
-            mainTagMap.set(tagName.toLowerCase(), mainTagId);
-            mainTagsCreated++;
+          // This expense has hierarchical tags - sync them if not in tag management
+          const subTagInfo = subTagById.get(expense.subTagId);
+          if (subTagInfo) {
+            const subTagName = subTagInfo.name;
+            const originalMainTagId = subTagInfo.mainTagId;
+            
+            // Get the main tag name from the original main tag
+            const originalMainTag = existingMainTags.find(mt => mt.id === originalMainTagId);
+            if (originalMainTag) {
+              const mainTagName = originalMainTag.name;
+              
+              // Ensure main tag exists (it should already, but track it)
+              let mainTagId = mainTagMap.get(mainTagName.toLowerCase());
+              if (!mainTagId) {
+                // Main tag exists in database, add to our map
+                mainTagId = originalMainTag.id;
+                mainTagMap.set(mainTagName.toLowerCase(), mainTagId);
+              }
+              
+              // Note: Sub-tags are already created when expenses are created,
+              // so they already exist in the database. This just ensures they're tracked.
+              const subTagKey = `${mainTagId}|${subTagName.toLowerCase()}`;
+              if (!createdSubTags.has(subTagKey)) {
+                createdSubTags.add(subTagKey);
+              }
+            }
+          }
+        } else {
+          // For legacy expenses with only tag field
+          if (expense.tag && expense.tag.trim()) {
+            const tagName = expense.tag.trim();
+            
+            // Create main tag if it doesn't exist
+            let mainTagId = mainTagMap.get(tagName.toLowerCase());
+            if (!mainTagId) {
+              const newMainTag = await storage.createMainTag({
+                name: tagName,
+                description: `Synced from expense data`
+              });
+              mainTagId = newMainTag.id;
+              mainTagMap.set(tagName.toLowerCase(), mainTagId);
+              mainTagsCreated++;
+            }
           }
         }
       }
