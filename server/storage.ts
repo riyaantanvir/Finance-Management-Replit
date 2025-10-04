@@ -105,6 +105,7 @@ export interface IStorage {
   createBulkExpenses(expenses: InsertExpense[]): Promise<Expense[]>;
   updateExpense(id: string, expense: UpdateExpense): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
+  deleteAllExpenses(): Promise<number>;
   getAllExpenses(): Promise<Expense[]>;
   getFilteredExpenses(filters: {
     dateRange?: string;

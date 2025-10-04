@@ -360,6 +360,22 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  async deleteAllExpenses(): Promise<number> {
+    // Get all expense IDs to delete associated ledger entries
+    const allExpenses = await db.query.expenses.findMany({
+      columns: { id: true }
+    });
+    
+    // Delete associated ledger entries for all expenses
+    for (const expense of allExpenses) {
+      await this.deleteLedgerByRef('expense', expense.id);
+    }
+    
+    // Delete all expenses
+    const result = await db.delete(expenses);
+    return result.rowCount || 0;
+  }
+
   async getAllExpenses(): Promise<Expense[]> {
     return await db.query.expenses.findMany({
       orderBy: [desc(expenses.date)]

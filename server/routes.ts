@@ -103,6 +103,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   }
 
+  // Middleware for admin access authentication
+  async function requireAdminAccess(req: any, res: any, next: any) {
+    const sessionId = req.query.sessionId || req.body.sessionId;
+    const user = await validateSession(sessionId);
+    
+    if (!user) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    if (!user.adminPanelAccess) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    req.authenticatedUser = user;
+    next();
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -305,6 +322,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete expense" });
+    }
+  });
+
+  app.delete("/api/expenses", requireAdminAccess, async (req: any, res) => {
+    try {
+      const count = await storage.deleteAllExpenses();
+      res.json({ message: `Successfully deleted ${count} expenses`, count });
+    } catch (error) {
+      console.error('Delete all expenses error:', error);
+      res.status(500).json({ message: "Failed to delete all expenses" });
     }
   });
 
