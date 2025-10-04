@@ -638,6 +638,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync tags from existing expenses
+  app.post("/api/tags/sync-from-expenses", async (req, res) => {
+    try {
+      // Get all expenses
+      const expenses = await storage.getAllExpenses();
+      
+      // Get existing tags to avoid duplicates
+      const existingMainTags = await storage.getAllMainTags();
+      const existingSubTags = await storage.getAllSubTags();
+      
+      let mainTagsCreated = 0;
+      let subTagsCreated = 0;
+      
+      // Track main tags we create/find in this session
+      const mainTagMap = new Map<string, string>(); // name -> id
+      
+      // Add existing main tags to map
+      existingMainTags.forEach(tag => {
+        mainTagMap.set(tag.name.toLowerCase(), tag.id);
+      });
+      
+      // Track created sub-tags to prevent duplicates within this sync
+      const createdSubTags = new Set<string>(); // Set of "mainTagId|subTagName" combinations
+      
+      // Add existing sub-tags to the set
+      existingSubTags.forEach(st => {
+        createdSubTags.add(`${st.mainTagId}|${st.name.toLowerCase()}`);
+      });
+      
+      // Extract unique category combinations from expenses
+      for (const expense of expenses) {
+        if (expense.subTagId) {
+          // This expense already has hierarchical tags, skip it
+          continue;
+        }
+        
+        // For legacy expenses with only tag field
+        if (expense.tag && expense.tag.trim()) {
+          const tagName = expense.tag.trim();
+          
+          // Create main tag if it doesn't exist
+          let mainTagId = mainTagMap.get(tagName.toLowerCase());
+          if (!mainTagId) {
+            const newMainTag = await storage.createMainTag({
+              name: tagName,
+              description: `Synced from expense data`
+            });
+            mainTagId = newMainTag.id;
+            mainTagMap.set(tagName.toLowerCase(), mainTagId);
+            mainTagsCreated++;
+          }
+        }
+      }
+
+      res.json({ 
+        message: "Tags synced from expenses successfully", 
+        mainTagsCreated, 
+        subTagsCreated,
+        totalExpenses: expenses.length
+      });
+    } catch (error) {
+      console.error('Sync from expenses error:', error);
+      res.status(500).json({ 
+        message: "Failed to sync tags from expenses",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Payment method management routes
   app.get("/api/payment-methods", async (req, res) => {
     try {
