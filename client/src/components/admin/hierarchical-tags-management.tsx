@@ -158,6 +158,27 @@ Income,investment`;
     syncTagsMutation.mutate(csvTemplate);
   };
 
+  // Sync tags from existing expenses
+  const syncFromExpensesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/tags/sync-from-expenses', {});
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/main-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/sub-tags'] });
+      toast({ 
+        title: 'Success', 
+        description: `Synced ${data.mainTagsCreated || 0} categories from ${data.totalExpenses || 0} expenses` 
+      });
+    },
+    onError: () => toast({ title: 'Error', description: 'Failed to sync from expenses', variant: 'destructive' }),
+  });
+
+  const handleSyncFromExpenses = () => {
+    syncFromExpensesMutation.mutate();
+  };
+
   // Forms
   const mainTagForm = useForm<z.infer<typeof insertMainTagSchema>>({
     resolver: zodResolver(insertMainTagSchema),
@@ -235,16 +256,28 @@ Income,investment`;
               Create main categories and sub-categories for detailed expense tracking
             </CardDescription>
           </div>
-          <Button
-            onClick={handleSyncTags}
-            disabled={syncTagsMutation.isPending}
-            variant="outline"
-            size="sm"
-            data-testid="button-sync-tags"
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncTagsMutation.isPending ? 'animate-spin' : ''}`} />
-            {syncTagsMutation.isPending ? 'Syncing...' : 'Sync Default Tags'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSyncFromExpenses}
+              disabled={syncFromExpensesMutation.isPending}
+              variant="default"
+              size="sm"
+              data-testid="button-sync-from-expenses"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncFromExpensesMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncFromExpensesMutation.isPending ? 'Syncing...' : 'Sync from Expenses'}
+            </Button>
+            <Button
+              onClick={handleSyncTags}
+              disabled={syncTagsMutation.isPending}
+              variant="outline"
+              size="sm"
+              data-testid="button-sync-tags"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${syncTagsMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncTagsMutation.isPending ? 'Syncing...' : 'Sync Default Tags'}
+            </Button>
+          </div>
         </CardHeader>
       </Card>
 
