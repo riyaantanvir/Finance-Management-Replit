@@ -63,7 +63,6 @@ export default function CSVImport() {
         let mainTagId = createdMainTags.get(mainCategoryName.toLowerCase());
         if (!mainTagId) {
           const newMainTag: any = await apiRequest("POST", "/api/main-tags", {
-            sessionId,
             name: mainCategoryName,
             description: `Auto-created from CSV import`
           });
@@ -76,7 +75,6 @@ export default function CSVImport() {
         let subTagId = createdSubTags.get(subTagKey);
         if (!subTagId) {
           const newSubTag: any = await apiRequest("POST", "/api/sub-tags", {
-            sessionId,
             name: subCategoryName,
             mainTagId: mainTagId,
             description: `Auto-created from CSV import`
