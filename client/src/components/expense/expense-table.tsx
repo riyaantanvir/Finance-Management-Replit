@@ -314,6 +314,7 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                     <TableHead>Details</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Sub-Category</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -397,21 +398,20 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                             Edit in form
                           </span>
                         ) : (
-                          <div className="flex flex-col" data-testid={`text-category-${expense.id}`}>
-                            {(() => {
-                              const category = getCategoryDisplay(expense);
-                              return (
-                                <>
-                                  <span className="text-sm font-medium">
-                                    {category.main}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    → {category.sub || '—'}
-                                  </span>
-                                </>
-                              );
-                            })()}
-                          </div>
+                          <span data-testid={`text-category-${expense.id}`}>
+                            {getCategoryDisplay(expense).main}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingId === expense.id ? (
+                          <span className="text-sm text-muted-foreground">
+                            Edit in form
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground" data-testid={`text-subcategory-${expense.id}`}>
+                            {getCategoryDisplay(expense).sub || '—'}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
