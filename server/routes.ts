@@ -687,7 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sync tags from existing expenses
+  // Sync tags from existing expenses (ONLY UNIQUE ENTRIES)
   app.post("/api/tags/sync-from-expenses", async (req, res) => {
     try {
       // Get all expenses
@@ -700,82 +700,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let mainTagsCreated = 0;
       let subTagsCreated = 0;
       
-      // Track main tags we create/find in this session
-      const mainTagMap = new Map<string, string>(); // name -> id
+      // STEP 1: Extract UNIQUE category combinations from ALL expenses first
+      const uniqueCombinations = new Set<string>(); // "mainCategory|subCategory"
+      const mainTagMap = new Map<string, string>(); // name -> id (for existing tags)
       
       // Add existing main tags to map
       existingMainTags.forEach(tag => {
         mainTagMap.set(tag.name.toLowerCase(), tag.id);
       });
       
-      // Create a map for sub-tag lookup by ID
+      // Create a map for sub-tag lookup
       const subTagById = new Map<string, { name: string; mainTagId: string }>();
       existingSubTags.forEach(st => {
         subTagById.set(st.id, { name: st.name, mainTagId: st.mainTagId });
       });
       
-      // Track created sub-tags to prevent duplicates within this sync
-      const createdSubTags = new Set<string>(); // Set of "mainTagId|subTagName" combinations
-      
-      // Add existing sub-tags to the set
+      // Track existing sub-tags
+      const existingSubTagSet = new Set<string>(); // "mainTagId|subTagName"
       existingSubTags.forEach(st => {
-        createdSubTags.add(`${st.mainTagId}|${st.name.toLowerCase()}`);
+        existingSubTagSet.add(`${st.mainTagId}|${st.name.toLowerCase()}`);
       });
       
-      // Extract unique category combinations from expenses
+      // Extract UNIQUE combinations from expenses
       for (const expense of expenses) {
         if (expense.subTagId) {
-          // This expense has hierarchical tags - sync them if not in tag management
           const subTagInfo = subTagById.get(expense.subTagId);
           if (subTagInfo) {
-            const subTagName = subTagInfo.name;
-            const originalMainTagId = subTagInfo.mainTagId;
-            
-            // Get the main tag name from the original main tag
-            const originalMainTag = existingMainTags.find(mt => mt.id === originalMainTagId);
+            const originalMainTag = existingMainTags.find(mt => mt.id === subTagInfo.mainTagId);
             if (originalMainTag) {
-              const mainTagName = originalMainTag.name;
-              
-              // Ensure main tag exists (it should already, but track it)
-              let mainTagId = mainTagMap.get(mainTagName.toLowerCase());
-              if (!mainTagId) {
-                // Main tag exists in database, add to our map
-                mainTagId = originalMainTag.id;
-                mainTagMap.set(mainTagName.toLowerCase(), mainTagId);
-              }
-              
-              // Note: Sub-tags are already created when expenses are created,
-              // so they already exist in the database. This just ensures they're tracked.
-              const subTagKey = `${mainTagId}|${subTagName.toLowerCase()}`;
-              if (!createdSubTags.has(subTagKey)) {
-                createdSubTags.add(subTagKey);
-              }
+              const combo = `${originalMainTag.name}|${subTagInfo.name}`;
+              uniqueCombinations.add(combo);
             }
           }
-        } else {
-          // For legacy expenses with only tag field
-          if (expense.tag && expense.tag.trim()) {
-            const tagName = expense.tag.trim();
-            
-            // Create main tag if it doesn't exist
-            let mainTagId = mainTagMap.get(tagName.toLowerCase());
-            if (!mainTagId) {
-              const newMainTag = await storage.createMainTag({
-                name: tagName,
-                description: `Synced from expense data`
-              });
-              mainTagId = newMainTag.id;
-              mainTagMap.set(tagName.toLowerCase(), mainTagId);
-              mainTagsCreated++;
-            }
-          }
+        } else if (expense.tag && expense.tag.trim()) {
+          // Legacy tags without hierarchy
+          const tagName = expense.tag.trim();
+          uniqueCombinations.add(`${tagName}|${tagName}`); // Use tag as both main and sub
+        }
+      }
+      
+      // STEP 2: Process ONLY UNIQUE combinations
+      for (const combo of Array.from(uniqueCombinations)) {
+        const [mainCategoryName, subCategoryName] = combo.split('|');
+        
+        // Create main tag if it doesn't exist
+        let mainTagId = mainTagMap.get(mainCategoryName.toLowerCase());
+        if (!mainTagId) {
+          const newMainTag = await storage.createMainTag({
+            name: mainCategoryName,
+            description: `Synced from expense data`
+          });
+          mainTagId = newMainTag.id;
+          mainTagMap.set(mainCategoryName.toLowerCase(), mainTagId);
+          mainTagsCreated++;
+        }
+        
+        // Create sub-tag if it doesn't exist
+        const subTagKey = `${mainTagId}|${subCategoryName.toLowerCase()}`;
+        if (!existingSubTagSet.has(subTagKey)) {
+          await storage.createSubTag({
+            name: subCategoryName,
+            mainTagId: mainTagId,
+            description: `Synced from expense data`
+          });
+          existingSubTagSet.add(subTagKey);
+          subTagsCreated++;
         }
       }
 
       res.json({ 
-        message: "Tags synced from expenses successfully", 
+        message: "Synced unique categories from expenses successfully", 
         mainTagsCreated, 
         subTagsCreated,
+        uniqueCombinations: uniqueCombinations.size,
         totalExpenses: expenses.length
       });
     } catch (error) {
