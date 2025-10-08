@@ -440,6 +440,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/main-tags", async (req, res) => {
     try {
       const mainTagData = insertMainTagSchema.parse(req.body);
+      
+      // Check if tag already exists (case-insensitive)
+      const existingTags = await storage.getAllMainTags();
+      const existingTag = existingTags.find(t => t.name.toLowerCase() === mainTagData.name.toLowerCase());
+      
+      if (existingTag) {
+        // Return existing tag instead of creating duplicate
+        return res.status(200).json(existingTag);
+      }
+      
       const mainTag = await storage.createMainTag(mainTagData);
       res.status(201).json(mainTag);
     } catch (error) {
@@ -507,6 +517,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sub-tags", async (req, res) => {
     try {
       const subTagData = insertSubTagSchema.parse(req.body);
+      
+      // Check if sub-tag already exists under this main tag (case-insensitive)
+      const existingSubTags = await storage.getSubTagsByMainTag(subTagData.mainTagId);
+      const existingSubTag = existingSubTags.find(st => st.name.toLowerCase() === subTagData.name.toLowerCase());
+      
+      if (existingSubTag) {
+        // Return existing sub-tag instead of creating duplicate
+        return res.status(200).json(existingSubTag);
+      }
+      
       const subTag = await storage.createSubTag(subTagData);
       res.status(201).json(subTag);
     } catch (error) {
