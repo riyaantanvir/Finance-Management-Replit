@@ -9,7 +9,7 @@ import { Edit, Trash2, Download } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Expense, ExchangeRate, SettingsFinance, PaymentMethod, MainTag, SubTag } from "@shared/schema";
+import { Expense, ExchangeRate, SettingsFinance, PaymentMethod } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 
 interface ExpenseTableProps {
@@ -81,15 +81,6 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     queryKey: ["/api/payment-methods"],
   });
 
-  // Fetch hierarchical tags for export
-  const { data: mainTags = [] } = useQuery<MainTag[]>({
-    queryKey: ["/api/main-tags"],
-  });
-
-  const { data: subTags = [] } = useQuery<SubTag[]>({
-    queryKey: ["/api/sub-tags"],
-  });
-
   // Currency conversion function
   const convertToBaseCurrency = (amount: number, fromCurrency: string): number => {
     const baseCurrency = financeSettings?.baseCurrency || 'BDT';
@@ -124,8 +115,8 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
     try {
       const baseCurrency = financeSettings?.baseCurrency || 'BDT';
       
-      // Create CSV headers matching the template with hierarchical tags
-      const headers = ['Date', 'Type', 'Details', `Amount (${baseCurrency})`, 'Main Category', 'Sub-Category', 'Payment Method'];
+      // Create CSV headers matching the template  
+      const headers = ['Date', 'Type', 'Details', `Amount (${baseCurrency})`, 'Tag', 'Payment Method'];
       
       // Process expense data
       const csvData = expenses.map(expense => {
@@ -136,28 +127,12 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
         // Convert amount to base currency
         const convertedAmount = convertToBaseCurrency(parseFloat(expense.amount), expenseCurrency);
         
-        // Get tag names from subTagId
-        let mainCategoryName = expense.tag || ''; // Fallback to legacy tag
-        let subCategoryName = '';
-        
-        if (expense.subTagId) {
-          const subTag = subTags.find(st => st.id === expense.subTagId);
-          if (subTag) {
-            subCategoryName = subTag.name;
-            const mainTag = mainTags.find(mt => mt.id === subTag.mainTagId);
-            if (mainTag) {
-              mainCategoryName = mainTag.name;
-            }
-          }
-        }
-        
         return [
           expense.date,
           expense.type,
           expense.details,
           convertedAmount.toFixed(2),
-          mainCategoryName,
-          subCategoryName,
+          expense.tag,
           expense.paymentMethod
         ];
       });
@@ -212,31 +187,6 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
   };
 
   const formatCurrency = (amount: string) => `৳ ${parseFloat(amount).toLocaleString()}`;
-
-  // Build efficient lookup maps for category resolution
-  const mainTagMap = new Map(mainTags.map(mt => [mt.id, mt.name]));
-  const subTagMap = new Map(subTags.map(st => [st.id, { name: st.name, mainTagId: st.mainTagId }]));
-
-  // Helper function to get category display for an expense
-  const getCategoryDisplay = (expense: Expense) => {
-    if (expense.subTagId) {
-      const subTag = subTagMap.get(expense.subTagId);
-      if (subTag) {
-        const mainTagName = mainTagMap.get(subTag.mainTagId);
-        if (mainTagName) {
-          return {
-            main: mainTagName,
-            sub: subTag.name
-          };
-        }
-      }
-    }
-    // For legacy expenses, show tag as main and empty sub-category
-    return {
-      main: expense.tag || 'No category',
-      sub: '' // Always show sub-category line, even if blank
-    };
-  };
 
   // Pagination
   const totalPages = Math.ceil(expenses.length / perPage);
@@ -313,8 +263,7 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                     <TableHead>Type</TableHead>
                     <TableHead>Details</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Sub-Category</TableHead>
+                    <TableHead>Tag</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -394,24 +343,25 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
                       </TableCell>
                       <TableCell>
                         {editingId === expense.id ? (
-                          <span className="text-sm text-muted-foreground">
-                            Edit in form
-                          </span>
+                          <Select
+                            value={editData.tag || ''}
+                            onValueChange={(value) => setEditData({ ...editData, tag: value })}
+                          >
+                            <SelectTrigger className="w-28" data-testid={`select-edit-tag-${expense.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="home">Home</SelectItem>
+                              <SelectItem value="family">Family</SelectItem>
+                              <SelectItem value="business">Business</SelectItem>
+                              <SelectItem value="transport">Transport</SelectItem>
+                              <SelectItem value="food">Food</SelectItem>
+                              <SelectItem value="entertainment">Entertainment</SelectItem>
+                              <SelectItem value="healthcare">Healthcare</SelectItem>
+                            </SelectContent>
+                          </Select>
                         ) : (
-                          <span data-testid={`text-category-${expense.id}`}>
-                            {getCategoryDisplay(expense).main}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingId === expense.id ? (
-                          <span className="text-sm text-muted-foreground">
-                            Edit in form
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground" data-testid={`text-subcategory-${expense.id}`}>
-                            {getCategoryDisplay(expense).sub || '—'}
-                          </span>
+                          <span data-testid={`text-tag-${expense.id}`}>{expense.tag}</span>
                         )}
                       </TableCell>
                       <TableCell>

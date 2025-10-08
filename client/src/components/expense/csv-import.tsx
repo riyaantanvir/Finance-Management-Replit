@@ -4,19 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, Download, AlertCircle, CheckCircle } from "lucide-react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { MainTag, SubTag } from "@shared/schema";
 
 interface CSVExpense {
   date: string;
   type: string;
   details: string;
   amount: string;
-  mainCategory: string;
-  subCategory: string;
+  tag: string;
   paymentMethod: string;
 }
 
@@ -28,78 +26,11 @@ export default function CSVImport() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch main tags and sub-tags for mapping
-  const { data: mainTags = [] } = useQuery<MainTag[]>({
-    queryKey: ["/api/main-tags"],
-  });
-
-  const { data: subTags = [] } = useQuery<SubTag[]>({
-    queryKey: ["/api/sub-tags"],
-  });
-
   const importMutation = useMutation({
-    mutationFn: async (data: CSVExpense[]) => {
-      // Auto-create categories and map to subTagId
-      const sessionId = localStorage.getItem('sessionId');
-      const expensesWithSubTagId = [];
-      
-      // Track created categories to avoid duplicates within this import
-      const createdMainTags = new Map<string, string>(); // name -> id
-      const createdSubTags = new Map<string, string>(); // "mainTagId|subTagName" -> id
-      
-      // Initialize with existing tags
-      mainTags.forEach(mt => {
-        createdMainTags.set(mt.name.toLowerCase(), mt.id);
-      });
-      subTags.forEach(st => {
-        createdSubTags.set(`${st.mainTagId}|${st.name.toLowerCase()}`, st.id);
-      });
-      
-      for (const expense of data) {
-        const mainCategoryName = expense.mainCategory.trim();
-        const subCategoryName = expense.subCategory.trim();
-        
-        // Get or create main tag
-        let mainTagId: string = createdMainTags.get(mainCategoryName.toLowerCase()) || '';
-        if (!mainTagId) {
-          const newMainTag: any = await apiRequest("POST", "/api/main-tags", {
-            name: mainCategoryName,
-            description: `Auto-created from CSV import`
-          });
-          mainTagId = newMainTag.id as string;
-          createdMainTags.set(mainCategoryName.toLowerCase(), mainTagId);
-        }
-        
-        // Get or create sub-tag
-        const subTagKey = `${mainTagId}|${subCategoryName.toLowerCase()}`;
-        let subTagId: string = createdSubTags.get(subTagKey) || '';
-        if (!subTagId) {
-          const subTagPayload = {
-            name: subCategoryName,
-            mainTagId: mainTagId,
-            description: `Auto-created from CSV import`
-          };
-          console.log("Creating sub-tag with payload:", subTagPayload);
-          const newSubTag: any = await apiRequest("POST", "/api/sub-tags", subTagPayload);
-          subTagId = newSubTag.id as string;
-          createdSubTags.set(subTagKey, subTagId);
-        }
-        
-        // Add expense with subTagId
-        const { mainCategory, subCategory, ...rest } = expense;
-        expensesWithSubTagId.push({
-          ...rest,
-          subTagId: subTagId,
-        });
-      }
-
-      return apiRequest("POST", "/api/expenses/bulk", { expenses: expensesWithSubTagId });
-    },
+    mutationFn: (data: CSVExpense[]) => apiRequest("POST", "/api/expenses/bulk", { expenses: data }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/main-tags"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/sub-tags"] });
       setFile(null);
       setPreview([]);
       setErrors([]);
@@ -153,18 +84,16 @@ export default function CSVImport() {
       return { data, errors };
     }
 
-    // Expected headers for hierarchical tags
-    const expectedHeaders = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Main Category', 'Sub-Category', 'Payment Method'];
+    // Expected headers
+    const expectedHeaders = ['Date', 'Type', 'Details', 'Amount (BDT)', 'Tag', 'Payment Method'];
     const headers = parseCSVLine(lines[0]);
 
     // Validate headers
     const headerMapping: { [key: string]: number } = {};
-    expectedHeaders.forEach((expected) => {
-      const normalizedExpected = expected.toLowerCase().replace(' (bdt)', '').replace(/-/g, '').replace(/\s+/g, '');
-      const actualIndex = headers.findIndex(h => {
-        const normalizedActual = h.toLowerCase().replace(' (bdt)', '').replace(/-/g, '').replace(/\s+/g, '');
-        return normalizedActual === normalizedExpected || normalizedActual.includes(normalizedExpected);
-      });
+    expectedHeaders.forEach((expected, index) => {
+      const actualIndex = headers.findIndex(h => 
+        h.toLowerCase().includes(expected.toLowerCase().replace(' (BDT)', ''))
+      );
       if (actualIndex === -1) {
         errors.push(`Missing required column: ${expected}`);
       } else {
@@ -190,8 +119,7 @@ export default function CSVImport() {
         type: cells[headerMapping['Type']]?.toLowerCase() || '',
         details: cells[headerMapping['Details']] || '',
         amount: cells[headerMapping['Amount (BDT)']] || '',
-        mainCategory: cells[headerMapping['Main Category']]?.trim() || '',
-        subCategory: cells[headerMapping['Sub-Category']]?.trim() || '',
+        tag: cells[headerMapping['Tag']]?.toLowerCase() || '',
         paymentMethod: cells[headerMapping['Payment Method']]?.toLowerCase().replace(/\s+/g, '') || '',
       };
 
@@ -216,19 +144,13 @@ export default function CSVImport() {
         continue;
       }
 
-      // Validate main category
-      if (!expense.mainCategory || expense.mainCategory.trim() === '') {
-        errors.push(`Row ${i + 1}: Main Category is required`);
+      // Validate tag (allow any non-empty tag)
+      if (!expense.tag || expense.tag.trim() === '') {
+        errors.push(`Row ${i + 1}: Tag is required`);
         continue;
       }
 
-      // Validate sub-category
-      if (!expense.subCategory || expense.subCategory.trim() === '') {
-        errors.push(`Row ${i + 1}: Sub-Category is required`);
-        continue;
-      }
-
-      // Validate payment method
+      // Validate payment method (allow any non-empty payment method)
       if (!expense.paymentMethod || expense.paymentMethod.trim() === '') {
         errors.push(`Row ${i + 1}: Payment Method is required`);
         continue;
@@ -272,8 +194,8 @@ export default function CSVImport() {
   };
 
   const downloadTemplate = () => {
-    const headers = "Date,Type,Details,Amount (BDT),Main Category,Sub-Category,Payment Method\n";
-    const sample = "2024-01-15,expense,Kacha Bazer,1200,Family bazer,kacha bazer,cash\n2024-01-15,expense,Fish purchase,800,Family bazer,fish bazer,cash\n2024-01-16,expense,Uber ride,350,Transportation,taxi,bkash\n2024-01-17,income,Salary,50000,Income,salary,bank transfer";
+    const headers = "Date,Type,Details,Amount (BDT),Tag,Payment Method\n";
+    const sample = "2024-01-15,expense,Lunch at restaurant,1200,dining,cash\n2024-01-15,income,Freelance payment,50000,business,bank transfer\n2024-01-16,expense,Uber ride,350,transport,bkash";
     const csvContent = headers + sample;
     
     const blob = new Blob([csvContent], { type: 'text/csv' });

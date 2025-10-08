@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2, Bitcoin } from "lucide-react";
+import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { getAuthState } from "@/lib/auth";
@@ -16,7 +16,6 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   const [fundsExpanded, setFundsExpanded] = useState(location.startsWith("/funds"));
   const [investmentsExpanded, setInvestmentsExpanded] = useState(location.startsWith("/investments"));
   const [agencyExpanded, setAgencyExpanded] = useState(location.startsWith("/agency"));
-  const [cryptoExpanded, setCryptoExpanded] = useState(location.startsWith("/crypto"));
   
   const authState = getAuthState();
   const user = authState.user;
@@ -31,9 +30,6 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
     }
     if (location.startsWith("/agency")) {
       setAgencyExpanded(true);
-    }
-    if (location.startsWith("/crypto")) {
-      setCryptoExpanded(true);
     }
   }, [location]);
 
@@ -65,14 +61,6 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
 
   const agencyNavigation = [
     { name: "Work Reports", href: "/agency/work-reports" },
-  ];
-
-  const cryptoNavigation = [
-    { name: "Dashboard", href: "/crypto/dashboard" },
-    { name: "Watchlist", href: "/crypto/watchlist" },
-    { name: "Alerts", href: "/crypto/alerts" },
-    { name: "Portfolio", href: "/crypto/portfolio" },
-    { name: "News", href: "/crypto/news" },
   ];
 
   const handleLinkClick = () => {
@@ -285,59 +273,6 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                     )}
                     data-testid={`link-agency-${item.name.toLowerCase().replace(' ', '-')}`}
-                  >
-                    {item.name}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Crypto World Section */}
-        {user?.cryptoAccess && (
-        <div className="mt-4">
-          <button
-            onClick={() => setCryptoExpanded(!cryptoExpanded)}
-            className={cn(
-              "flex items-center justify-between w-full px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
-              location.startsWith("/crypto")
-                ? "text-primary bg-accent border-l-4 border-primary"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            )}
-            data-testid="button-crypto-menu"
-          >
-            <div className="flex items-center">
-              <Bitcoin className="h-5 w-5 min-w-[1.25rem]" />
-              {(isOpen || isMobile) && <span className="ml-3 truncate">Crypto World</span>}
-            </div>
-            {(isOpen || isMobile) && (
-              cryptoExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )
-            )}
-          </button>
-
-          {/* Crypto World Submenu */}
-          {cryptoExpanded && (isOpen || isMobile) && (
-            <div className="ml-8 mt-2 space-y-1">
-              {cryptoNavigation.map((item) => {
-                const isActive = location === item.href;
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={handleLinkClick}
-                    className={cn(
-                      "flex items-center px-4 py-2 text-sm transition-colors rounded-lg",
-                      isActive
-                        ? "text-primary bg-accent/50 font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                    )}
-                    data-testid={`link-crypto-${item.name.toLowerCase()}`}
                   >
                     {item.name}
                   </Link>

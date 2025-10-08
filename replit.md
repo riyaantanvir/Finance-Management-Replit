@@ -1,9 +1,6 @@
 # Overview
 
-This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application includes:
-- **Advantix Agency Work Reports System** for time tracking and project management with secure role-based permissions
-- **Cryptocurrency Management System** for tracking coins, market alerts via Telegram, crypto news with sentiment analysis, and portfolio management using free APIs (CoinGecko, CryptoNews, Telegram Bot)
-The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
+This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application now includes an **Advantix Agency Work Reports System** for time tracking and project management with secure role-based permissions. The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
 
 # User Preferences
 
@@ -29,18 +26,10 @@ Preferred communication style: Simple, everyday language.
 ## Database Schema
 The application uses Drizzle ORM with PostgreSQL schema definitions:
 
-- **Users Table**: Stores user credentials and role-based permissions (dashboard access, expense entry access, admin panel access, crypto access)
-- **Expenses Table**: Tracks financial transactions with date, type (income/expense), details, amount, hierarchical tags (subTagId), and payment methods
-- **Main Tags Table**: Top-level expense categories (e.g., "Family bazer", "Transportation") for hierarchical organization
-- **Sub-Tags Table**: Detailed subcategories under main tags (e.g., "kacha bazer", "fish bazer" under "Family bazer") with cascade delete on parent
-- **Tags Table** (Legacy): Preserved for backward compatibility during migration
+- **Users Table**: Stores user credentials and role-based permissions (dashboard access, expense entry access, admin panel access)
+- **Expenses Table**: Tracks financial transactions with date, type (income/expense), details, amount, tags, and payment methods
 - **Work Reports Table**: Tracks time entries for Advantix Agency work with user assignments, dates, task details, hours worked, approval status, and comments
-- **Crypto API Settings Table**: Stores CoinGecko API key, CryptoNews API key, and Telegram bot credentials (bot token, chat ID)
-- **Crypto Watchlist Table**: User-specific cryptocurrency watchlist with unique constraint (userId + coinId)
-- **Crypto Alerts Table**: Price and percentage change alerts with notification preferences (Telegram/email)
-- **Crypto Portfolio Table**: User cryptocurrency holdings with buy prices, quantities, and dates
 - **Schema Validation**: Zod schemas for runtime type checking and validation
-- **Foreign Key Cascades**: All crypto tables use ON DELETE CASCADE for automatic cleanup when users are deleted
 
 ## Authentication & Authorization
 - **Simple Authentication**: Username/password based login system
@@ -54,13 +43,6 @@ The application uses Drizzle ORM with PostgreSQL schema definitions:
 - **Role-based Authorization**: Non-admin users can only access their own work reports; admin users can access all reports
 - **Authentication Middleware**: Centralized security validation before work reports operations
 - **Access Control**: Proper 401/403 HTTP status codes for authentication and authorization failures
-
-### Crypto Access Security Model
-- **Permission-based Access**: Users must have `cryptoAccess` permission enabled to access crypto features
-- **Session-based Authentication**: Server-side session validation with `requireCryptoAccess` middleware
-- **User Data Isolation**: Users can only access their own crypto watchlist, alerts, and portfolio
-- **API Key Security**: Crypto API keys stored in database, accessible only to users with crypto access
-- **Cascading Deletes**: All user crypto data automatically deleted when user is removed
 
 ## Data Storage
 - **Current Implementation**: PostgreSQL database using Drizzle ORM with DatabaseStorage implementation
@@ -124,101 +106,10 @@ The application uses Drizzle ORM with PostgreSQL schema definitions:
 ## Default Credentials
 - **Username**: Admin
 - **Password**: Admin
-- **Permissions**: Full access to all modules (dashboard, expense entry, admin panel, agency reports, investment management, fund management, subscriptions, crypto access)
-
-# Cryptocurrency Management System
-
-## Features
-The crypto system provides comprehensive cryptocurrency tracking and management capabilities:
-
-### API Configuration (Admin Panel → Crypto API)
-- **CoinGecko API**: Configure API key for cryptocurrency price data and market information (13M+ tokens, 100 calls/min free tier)
-- **CryptoNews API**: Configure API key for crypto news with sentiment analysis (100 calls/month free tier)
-- **Telegram Bot**: Configure bot token and chat ID for push notifications (unlimited free notifications)
-
-### Crypto World Main Menu
-- **Dashboard**: Overview of watchlist, active alerts, portfolio performance, and recent news
-- **Watchlist**: Track selected cryptocurrencies with real-time prices and price changes
-- **Alerts**: Set price target alerts and percentage change alerts with Telegram/email notifications
-- **Portfolio**: Manage cryptocurrency holdings with buy prices, quantities, profit/loss tracking
-- **News**: View crypto news feed with sentiment analysis (positive/negative/neutral)
-
-## Crypto API Stack (Free Tier - $0/month)
-- **CoinGecko API** (`https://api.coingecko.com/api/v3/`): Cryptocurrency prices, market data, historical charts
-- **CryptoNews API** (`https://cryptonews-api.com/`): News articles with sentiment analysis
-- **Telegram Bot API** (`https://api.telegram.org/bot{token}/`): Push notifications for price alerts
-
-## Backend API Routes
-All crypto routes require session authentication and `cryptoAccess` permission:
-
-### Crypto Settings
-- `GET /api/crypto/settings` - Get API configuration
-- `PUT /api/crypto/settings` - Update API configuration
-
-### Watchlist
-- `GET /api/crypto/watchlist` - Get user's watchlist
-- `POST /api/crypto/watchlist` - Add coin to watchlist
-- `DELETE /api/crypto/watchlist/:id` - Remove from watchlist
-
-### Alerts
-- `GET /api/crypto/alerts` - Get user's alerts
-- `POST /api/crypto/alerts` - Create new alert
-- `PUT /api/crypto/alerts/:id` - Update alert
-- `DELETE /api/crypto/alerts/:id` - Delete alert
-
-### Portfolio
-- `GET /api/crypto/portfolio` - Get user's portfolio
-- `POST /api/crypto/portfolio` - Add portfolio entry
-- `PUT /api/crypto/portfolio/:id` - Update portfolio entry
-- `DELETE /api/crypto/portfolio/:id` - Delete portfolio entry
+- **Permissions**: Full access to all modules (dashboard, expense entry, admin panel, agency reports, investment management, fund management, subscriptions)
 
 ## Deployment
 - **Deployment Type**: Autoscale (stateless web application)
 - **Build Command**: `npm run build`
 - **Run Command**: `npm start`
 - **Configuration**: Managed via Replit deployment settings
-
-# Hierarchical Tag System
-
-## Features
-The expense tracking system uses a two-level hierarchical tag structure for detailed financial categorization and reporting:
-
-### Tag Structure
-- **Main Tags** (Categories): Top-level expense categories like "Family bazer", "Transportation", "Bills"
-- **Sub-Tags** (Subcategories): Detailed breakdown under each main tag (e.g., "kacha bazer", "fish bazer", "grocery" under "Family bazer")
-
-### Admin Panel - Tag Management
-- **Hierarchical UI**: Split-panel interface showing main tags on left, sub-tags on right
-- **CRUD Operations**: Full create, read, update, delete for both tag levels
-- **Cascade Delete**: Deleting a main tag automatically removes all its sub-tags
-- **Visual Hierarchy**: Clear parent-child relationship visualization with icons
-
-### Expense Entry - Two-Step Selection
-- **Step 1**: Select main category from dropdown
-- **Step 2**: Select sub-category (filtered by main category selection)
-- **Validation**: Both selections required before expense submission
-- **Smart Reset**: Sub-category resets when main category changes
-
-### Database Schema
-- `main_tags`: id (varchar UUID), name (unique), description, timestamps
-- `sub_tags`: id (varchar UUID), name, mainTagId (FK with CASCADE), description, timestamps
-- `expenses.subTagId`: Foreign key to sub_tags table for hierarchical categorization
-- `expenses.tag`: Legacy text field preserved for backward compatibility
-
-### Backend API Routes
-**Main Tags:**
-- `GET /api/main-tags` - List all main tags
-- `POST /api/main-tags` - Create main tag
-- `PUT /api/main-tags/:id` - Update main tag
-- `DELETE /api/main-tags/:id` - Delete main tag (cascades to sub-tags)
-
-**Sub-Tags:**
-- `GET /api/sub-tags?mainTagId={id}` - Get sub-tags by main tag (optional filter)
-- `POST /api/sub-tags` - Create sub-tag
-- `PUT /api/sub-tags/:id` - Update sub-tag
-- `DELETE /api/sub-tags/:id` - Delete sub-tag
-
-### Monthly Reporting
-- Expenses grouped by main category with sub-category breakdown
-- Monthly totals per main tag with drill-down to sub-tag details
-- Example: "Family bazer: $1,500 → kacha bazer: $800, fish bazer: $500, grocery: $200"

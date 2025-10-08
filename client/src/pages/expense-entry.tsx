@@ -5,7 +5,6 @@ import ExpenseForm from "@/components/expense/expense-form";
 import CSVImport from "@/components/expense/csv-import";
 import ExpenseFilters from "@/components/expense/expense-filters";
 import ExpenseTable from "@/components/expense/expense-table";
-import DeleteAllButton from "@/components/expense/delete-all-button";
 
 export default function ExpenseEntry() {
   const [filters, setFilters] = useState({
@@ -46,10 +45,7 @@ export default function ExpenseEntry() {
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6" data-testid="expense-entry-page">
       <ExpenseForm />
-      <div className="flex items-center gap-4">
-        <CSVImport />
-        <DeleteAllButton />
-      </div>
+      <CSVImport />
       <ExpenseFilters filters={filters} onFilterChange={handleFilterChange} expenses={expenses} />
       <ExpenseTable expenses={expenses} isLoading={isLoading} />
     </div>

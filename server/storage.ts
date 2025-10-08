@@ -8,10 +8,6 @@ import {
   type Tag,
   type InsertTag,
   type UpdateTag,
-  type MainTag,
-  type InsertMainTag,
-  type SubTag,
-  type InsertSubTag,
   type PaymentMethod,
   type InsertPaymentMethod,
   type UpdatePaymentMethod,
@@ -77,21 +73,6 @@ export interface IStorage {
   deleteTag(id: string): Promise<boolean>;
   getAllTags(): Promise<Tag[]>;
   
-  // Main Tag methods (hierarchical)
-  getMainTag(id: string): Promise<MainTag | undefined>;
-  createMainTag(mainTag: InsertMainTag): Promise<MainTag>;
-  updateMainTag(id: string, mainTag: Partial<InsertMainTag>): Promise<MainTag | undefined>;
-  deleteMainTag(id: string): Promise<boolean>;
-  getAllMainTags(): Promise<MainTag[]>;
-  
-  // Sub Tag methods (hierarchical)
-  getSubTag(id: string): Promise<SubTag | undefined>;
-  createSubTag(subTag: InsertSubTag): Promise<SubTag>;
-  updateSubTag(id: string, subTag: Partial<InsertSubTag>): Promise<SubTag | undefined>;
-  deleteSubTag(id: string): Promise<boolean>;
-  getAllSubTags(): Promise<SubTag[]>;
-  getSubTagsByMainTag(mainTagId: string): Promise<SubTag[]>;
-  
   // Payment Method methods
   getPaymentMethod(id: string): Promise<PaymentMethod | undefined>;
   createPaymentMethod(paymentMethod: InsertPaymentMethod): Promise<PaymentMethod>;
@@ -105,7 +86,6 @@ export interface IStorage {
   createBulkExpenses(expenses: InsertExpense[]): Promise<Expense[]>;
   updateExpense(id: string, expense: UpdateExpense): Promise<Expense | undefined>;
   deleteExpense(id: string): Promise<boolean>;
-  deleteAllExpenses(): Promise<number>;
   getAllExpenses(): Promise<Expense[]>;
   getFilteredExpenses(filters: {
     dateRange?: string;
