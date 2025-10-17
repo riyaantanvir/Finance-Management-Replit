@@ -322,7 +322,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                 {user?.username || "User"}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                {user?.role || "User"}
+                {user?.adminPanelAccess ? "Administrator" : "User"}
               </p>
             </div>
           )}
