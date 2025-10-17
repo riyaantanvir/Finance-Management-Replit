@@ -529,16 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
-      // Check if account has related records
-      const hasLedgerEntries = await storage.hasLedgerEntries(id);
-      const hasTransfers = await storage.hasAccountTransfers(id);
-      
-      if (hasLedgerEntries || hasTransfers) {
-        return res.status(400).json({ 
-          message: "Cannot delete account with existing transactions. Please delete all related transactions first." 
-        });
-      }
-      
+      // Delete account - CASCADE will automatically handle related ledger entries and transfers
       const deleted = await storage.deleteAccount(id);
       
       if (!deleted) {

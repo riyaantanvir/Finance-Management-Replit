@@ -85,7 +85,7 @@ export const accounts = pgTable("accounts", {
 
 export const ledger = pgTable("ledger", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  accountId: varchar("account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   txType: txTypeEnum("tx_type").notNull(),
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
   currency: text("currency").notNull(),
@@ -100,8 +100,8 @@ export const ledger = pgTable("ledger", {
 
 export const transfers = pgTable("transfers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fromAccountId: varchar("from_account_id").notNull().references(() => accounts.id),
-  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id),
+  fromAccountId: varchar("from_account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
+  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
   currency: text("currency").notNull(),
   fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
@@ -144,7 +144,7 @@ export const subscriptions = pgTable("subscriptions", {
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
   currency: text("currency").notNull().default("USD"),
   nextBillDate: text("next_bill_date").notNull(),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  accountId: varchar("account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   cardLast4: varchar("card_last4", { length: 4 }),
   status: subscriptionStatusEnum("status").notNull().default("active"),
   alertEnabled: boolean("alert_enabled").notNull().default(true),
@@ -182,7 +182,7 @@ export const invTx = pgTable("inv_tx", {
   date: text("date").notNull(),
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
   direction: transactionDirectionEnum("direction").notNull(),
-  accountId: varchar("account_id").notNull().references(() => accounts.id),
+  accountId: varchar("account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   currency: text("currency").notNull(),
   fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
   amountBase: decimal("amount_base", { precision: 18, scale: 2 }).notNull(),
@@ -196,7 +196,7 @@ export const invPayouts = pgTable("inv_payouts", {
   projectId: varchar("project_id").notNull().references(() => invProjects.id),
   date: text("date").notNull(),
   amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
-  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id),
+  toAccountId: varchar("to_account_id").notNull().references(() => accounts.id, { onDelete: 'cascade' }),
   currency: text("currency").notNull(),
   fxRate: decimal("fx_rate", { precision: 18, scale: 6 }).notNull().default("1"),
   note: text("note"),
