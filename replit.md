@@ -2,6 +2,14 @@
 
 This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application now includes an **Advantix Agency Work Reports System** for time tracking and project management with secure role-based permissions. The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
 
+# Recent Changes (October 17, 2025)
+
+## UI/UX Improvements
+- **Sidebar Navigation Restructured**: Admin Panel moved to bottom of sidebar with visual divider
+- **User Profile Section**: Added profile section at bottom of sidebar with avatar, username, role display, and logout button
+- **Dashboard Default Filter**: Dashboard now defaults to showing "this month" data instead of "all time"
+- **Fund Management Overview**: Added "Account Balances Transactions" section displaying recent ledger entries from all accounts before "Recent Transfers"
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.

@@ -37,6 +37,11 @@ export default function FundOverview() {
     enabled: !!selectedAccount,
   });
 
+  // Fetch all ledger entries for account balance transactions
+  const { data: allLedger = [], isLoading: allLedgerLoading } = useQuery<Ledger[]>({
+    queryKey: ["/api/ledger"],
+  });
+
   // Currency conversion function - returns null if no rate found
   const convertToBaseCurrency = (amount: number, fromCurrency: string, baseCurrency: string): number | null => {
     if (fromCurrency === baseCurrency) {
@@ -456,6 +461,82 @@ export default function FundOverview() {
                   </DialogContent>
                 </Dialog>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Account Balances Transactions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Account Balances Transactions</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              {allLedger.slice(0, 10).length} recent
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {allLedgerLoading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse flex items-center space-x-3 py-3">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+              ))}
+            </div>
+          ) : allLedger.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8" data-testid="text-no-ledger">
+              No transactions found
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {allLedger.slice(0, 10).map((entry) => {
+                const { icon, color, bg } = getTransactionIcon(entry.txType);
+                const amount = parseFloat(entry.amount);
+                const account = accounts.find(acc => acc.id === entry.accountId);
+                
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center justify-between py-3 border-b border-border last:border-b-0"
+                    data-testid={`ledger-transaction-${entry.id}`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center`}>
+                        <span className={color}>{icon}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium" data-testid={`text-ledger-type-${entry.id}`}>
+                          {getTransactionDescription(entry.txType)}
+                        </p>
+                        <p className="text-sm text-muted-foreground" data-testid={`text-ledger-account-${entry.id}`}>
+                          {account?.name || 'Unknown Account'} • {entry.note || 'No description'}
+                        </p>
+                        <p className="text-xs text-muted-foreground" data-testid={`text-ledger-date-${entry.id}`}>
+                          {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={`font-medium ${amount >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        data-testid={`text-ledger-amount-${entry.id}`}
+                      >
+                        {amount >= 0 ? '+' : ''}{showBalances ? formatCurrency(Math.abs(amount)) : '••••••'}
+                      </p>
+                      <p className="text-xs text-muted-foreground" data-testid={`text-ledger-ref-${entry.id}`}>
+                        {entry.refType || 'system'}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
