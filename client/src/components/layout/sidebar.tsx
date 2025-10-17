@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2 } from "lucide-react";
+import { BarChart, Plus, Users, X, Wallet, ChevronDown, ChevronRight, TrendingUp, CreditCard, Building2, UserCircle, LogOut, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { getAuthState } from "@/lib/auth";
+import { getAuthState, clearAuthState } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -33,14 +34,18 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
     }
   }, [location]);
 
-  const allNavigationItems = [
+  const mainNavigationItems = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart, permission: user?.dashboardAccess },
     { name: "Expense Entry", href: "/expense-entry", icon: Plus, permission: user?.expenseEntryAccess },
     { name: "Subscriptions", href: "/subscriptions", icon: CreditCard, permission: user?.subscriptionsAccess },
-    { name: "Admin Panel", href: "/admin-panel", icon: Users, permission: user?.adminPanelAccess },
   ];
   
-  const navigation = allNavigationItems.filter(item => item.permission);
+  const navigation = mainNavigationItems.filter(item => item.permission);
+
+  const handleLogout = () => {
+    clearAuthState();
+    window.location.href = "/login";
+  };
 
   const fundsNavigation = [
     { name: "Overview", href: "/funds/overview" },
@@ -282,7 +287,59 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
           )}
         </div>
         )}
+
+        {/* Admin Panel Section - Moved to bottom */}
+        {user?.adminPanelAccess && (
+          <>
+            <div className="my-4 mx-4 border-t border-border" />
+            <Link 
+              href="/admin-panel"
+              onClick={handleLinkClick}
+              className={cn(
+                "flex items-center px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
+                location === "/admin-panel"
+                  ? "text-primary bg-accent border-l-4 border-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+              data-testid="link-admin-panel"
+            >
+              <Users className="h-5 w-5 min-w-[1.25rem]" />
+              {(isOpen || isMobile) && <span className="ml-3 truncate">Admin Panel</span>}
+            </Link>
+          </>
+        )}
       </nav>
+
+      {/* User Profile Section */}
+      <div className="border-t border-border p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <UserCircle className="h-6 w-6 text-primary" />
+          </div>
+          {(isOpen || isMobile) && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate" data-testid="text-username">
+                {user?.username || "User"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.role || "User"}
+              </p>
+            </div>
+          )}
+          {(isOpen || isMobile) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="h-8 w-8 flex-shrink-0"
+              title="Logout"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
