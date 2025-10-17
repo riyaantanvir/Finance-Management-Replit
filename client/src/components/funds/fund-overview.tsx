@@ -495,7 +495,7 @@ export default function FundOverview() {
               No transactions found
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[280px] overflow-y-auto pr-2" data-testid="scrollable-ledger-list">
               {allLedger.slice(0, 10).map((entry) => {
                 const { icon, color, bg } = getTransactionIcon(entry.txType);
                 const amount = parseFloat(entry.amount);
