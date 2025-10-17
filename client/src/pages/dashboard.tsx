@@ -15,7 +15,7 @@ interface DashboardStats {
 
 export default function Dashboard() {
   const [filters, setFilters] = useState({
-    dateRange: 'all',
+    dateRange: 'this_month',
     tag: 'all',
     paymentMethod: 'all',
     type: 'all',
