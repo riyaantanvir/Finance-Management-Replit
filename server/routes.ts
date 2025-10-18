@@ -476,6 +476,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export accounts to CSV
+  app.get("/api/accounts/export", async (req, res) => {
+    try {
+      const accounts = await storage.getAllAccounts();
+      
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=accounts_export.csv');
+      
+      // Create CSV content
+      const csvHeader = 'name,type,currency,openingBalance,paymentMethodKey,status\n';
+      const csvRows = accounts.map(account => 
+        `"${account.name}","${account.type}","${account.currency}","${account.openingBalance}","${account.paymentMethodKey || ""}","${account.status}"`
+      ).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Account export error:', error);
+      res.status(500).json({ 
+        message: "Failed to export accounts",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   app.get("/api/accounts/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -603,32 +629,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Bulk account import error:', error);
       res.status(500).json({ 
         message: "Failed to import accounts",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
-  // Export accounts to CSV
-  app.get("/api/accounts/export", async (req, res) => {
-    try {
-      const accounts = await storage.getAllAccounts();
-      
-      // Set headers for CSV download
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=accounts_export.csv');
-      
-      // Create CSV content
-      const csvHeader = 'name,type,currency,openingBalance,paymentMethodKey,status\n';
-      const csvRows = accounts.map(account => 
-        `"${account.name}","${account.type}","${account.currency}","${account.openingBalance}","${account.paymentMethodKey || ""}","${account.status}"`
-      ).join('\n');
-      
-      const csvContent = csvHeader + csvRows;
-      res.send(csvContent);
-    } catch (error) {
-      console.error('Account export error:', error);
-      res.status(500).json({ 
-        message: "Failed to export accounts",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
