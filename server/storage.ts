@@ -5,6 +5,9 @@ import {
   type Expense, 
   type InsertExpense, 
   type UpdateExpense,
+  type PlannedPayment,
+  type InsertPlannedPayment,
+  type UpdatePlannedPayment,
   type Tag,
   type InsertTag,
   type UpdateTag,
@@ -95,6 +98,15 @@ export interface IStorage {
     startDate?: string;
     endDate?: string;
   }): Promise<Expense[]>;
+
+  // Planned Payment methods
+  getPlannedPayment(id: string): Promise<PlannedPayment | undefined>;
+  createPlannedPayment(payment: InsertPlannedPayment): Promise<PlannedPayment>;
+  updatePlannedPayment(id: string, payment: UpdatePlannedPayment): Promise<PlannedPayment | undefined>;
+  deletePlannedPayment(id: string): Promise<boolean>;
+  getAllPlannedPayments(): Promise<PlannedPayment[]>;
+  getActivePlannedPayments(): Promise<PlannedPayment[]>;
+  getPlannedPaymentsByTag(tag: string): Promise<PlannedPayment[]>;
 
   // Account methods
   getAccount(id: string): Promise<Account | undefined>;

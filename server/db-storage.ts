@@ -1,6 +1,6 @@
 import { eq, desc, and, or, gte, lte, sum, sql } from 'drizzle-orm';
 import { db } from './db';
-import { users, tags, paymentMethods, expenses, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports, cryptoApiSettings, cryptoWatchlist, cryptoAlerts, cryptoPortfolio } from '@shared/schema';
+import { users, tags, paymentMethods, expenses, plannedPayments, accounts, ledger, transfers, settingsFinance, exchangeRates, invProjects, invCategories, invTx, invPayouts, subscriptions, telegramSettings, workReports, cryptoApiSettings, cryptoWatchlist, cryptoAlerts, cryptoPortfolio } from '@shared/schema';
 import { 
   type User, 
   type InsertUser, 
@@ -8,6 +8,9 @@ import {
   type Expense, 
   type InsertExpense, 
   type UpdateExpense,
+  type PlannedPayment,
+  type InsertPlannedPayment,
+  type UpdatePlannedPayment,
   type Tag,
   type InsertTag,
   type UpdateTag,
@@ -368,6 +371,55 @@ export class DatabaseStorage implements IStorage {
     return await db.query.expenses.findMany({
       where: whereClause,
       orderBy: [desc(expenses.date)]
+    });
+  }
+
+  // Planned Payment methods
+  async getPlannedPayment(id: string): Promise<PlannedPayment | undefined> {
+    const result = await db.query.plannedPayments.findFirst({
+      where: eq(plannedPayments.id, id)
+    });
+    return result;
+  }
+
+  async createPlannedPayment(payment: InsertPlannedPayment): Promise<PlannedPayment> {
+    const [result] = await db.insert(plannedPayments).values(payment).returning();
+    return result;
+  }
+
+  async updatePlannedPayment(id: string, payment: UpdatePlannedPayment): Promise<PlannedPayment | undefined> {
+    const [result] = await db.update(plannedPayments)
+      .set({ ...payment, updatedAt: new Date() })
+      .where(eq(plannedPayments.id, id))
+      .returning();
+    return result;
+  }
+
+  async deletePlannedPayment(id: string): Promise<boolean> {
+    const result = await db.delete(plannedPayments).where(eq(plannedPayments.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAllPlannedPayments(): Promise<PlannedPayment[]> {
+    return await db.query.plannedPayments.findMany({
+      orderBy: [desc(plannedPayments.createdAt)]
+    });
+  }
+
+  async getActivePlannedPayments(): Promise<PlannedPayment[]> {
+    return await db.query.plannedPayments.findMany({
+      where: eq(plannedPayments.isActive, true),
+      orderBy: [desc(plannedPayments.createdAt)]
+    });
+  }
+
+  async getPlannedPaymentsByTag(tag: string): Promise<PlannedPayment[]> {
+    return await db.query.plannedPayments.findMany({
+      where: and(
+        eq(plannedPayments.tag, tag),
+        eq(plannedPayments.isActive, true)
+      ),
+      orderBy: [desc(plannedPayments.createdAt)]
     });
   }
 
