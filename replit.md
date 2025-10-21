@@ -4,6 +4,15 @@ This is a full-stack Finance CRM application built with React, Express, and Type
 
 # Recent Changes (October 21, 2025)
 
+## Delete All Expenses Feature
+- **Bulk Delete Functionality**: Added "Delete All" button in expense table header for one-click removal of all expenses
+- **Confirmation Dialog**: Two-step confirmation process with warning dialog showing exact count of entries to be deleted
+- **Safety Measures**: Button is disabled when no expenses exist or during deletion operation
+- **Visual Alerts**: Uses destructive red styling and AlertCircle icon to emphasize irreversible nature
+- **Cache Invalidation**: Automatically refreshes expense list and dashboard statistics after deletion
+- **User Feedback**: Toast notifications confirm successful deletion or report errors
+- **Backend Integration**: Leverages existing `/api/expenses` DELETE endpoint that safely removes ledger entries before deleting expenses
+
 ## Dashboard Budget Summary Cards
 - **Total Planned Budget**: Shows sum of all planned payments for the selected period with blue color coding
 - **Total Actual Spending**: Displays total expenses with purple color and percentage usage indicator

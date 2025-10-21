@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, Download } from "lucide-react";
+import { Edit, Trash2, Download, AlertCircle } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +62,25 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
       toast({
         title: "Error",
         description: "Failed to delete expense",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAllExpensesMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", "/api/expenses"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({
+        title: "Success",
+        description: "All expenses deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete all expenses",
         variant: "destructive",
       });
     },
@@ -216,6 +235,41 @@ export default function ExpenseTable({ expenses, isLoading }: ExpenseTableProps)
         <div className="flex items-center justify-between">
           <CardTitle>All Entries</CardTitle>
           <div className="flex items-center space-x-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  data-testid="button-delete-all"
+                  disabled={expenses.length === 0 || deleteAllExpensesMutation.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete All
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                    Are you absolutely sure?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all {expenses.length} expense entries. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-delete-all">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteAllExpensesMutation.mutate()}
+                    className="bg-destructive hover:bg-destructive/90"
+                    data-testid="button-confirm-delete-all"
+                  >
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button
               onClick={exportToCSV}
               variant="outline"
