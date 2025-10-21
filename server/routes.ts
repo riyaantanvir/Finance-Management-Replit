@@ -308,6 +308,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/expenses", async (req, res) => {
+    try {
+      const deleted = await storage.deleteAllExpenses();
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "No expenses found to delete" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete all expenses" });
+    }
+  });
+
   // Planned Payment routes
   app.get("/api/planned-payments", async (req, res) => {
     try {
