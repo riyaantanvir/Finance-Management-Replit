@@ -137,7 +137,7 @@ export default function Dashboard() {
 
   // Calculate tag-wise expense breakdown from filtered expenses
   const tagBreakdown = useMemo(() => {
-    const expenses = filteredExpenses.filter(e => e.type === 'expense');
+    const expenses = filteredExpenses.filter(e => e.type === 'expense' && e.tag && e.tag.trim() !== '');
     const tagTotals = expenses.reduce((acc, expense) => {
       const tag = expense.tag;
       const amount = parseFloat(expense.amount);
