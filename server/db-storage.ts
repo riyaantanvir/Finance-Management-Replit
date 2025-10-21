@@ -479,13 +479,31 @@ export class DatabaseStorage implements IStorage {
           rangeEndDate.setDate(rangeStartDate.getDate() + 6);
           rangeEndDate.setHours(23, 59, 59, 999);
           break;
+        case 'last_week':
+          const currentDayOfWeek = today.getDay();
+          const diffToLastMonday = currentDayOfWeek === 0 ? -13 : -6 - currentDayOfWeek;
+          rangeStartDate = new Date(today);
+          rangeStartDate.setDate(today.getDate() + diffToLastMonday);
+          rangeStartDate.setHours(0, 0, 0, 0);
+          rangeEndDate = new Date(rangeStartDate);
+          rangeEndDate.setDate(rangeStartDate.getDate() + 6);
+          rangeEndDate.setHours(23, 59, 59, 999);
+          break;
         case 'this_month':
           rangeStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
           rangeEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
           break;
+        case 'last_month':
+          rangeStartDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          rangeEndDate = new Date(today.getFullYear(), today.getMonth(), 0, 23, 59, 59, 999);
+          break;
         case 'this_year':
           rangeStartDate = new Date(today.getFullYear(), 0, 1);
           rangeEndDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+          break;
+        case 'last_year':
+          rangeStartDate = new Date(today.getFullYear() - 1, 0, 1);
+          rangeEndDate = new Date(today.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
           break;
         case 'all':
         default:
