@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter, Clock } from "lucide-react";
+import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter, Clock, Target, TrendingUp, AlertTriangle } from "lucide-react";
 import { Expense } from "@shared/schema";
 import ExpenseFilters from "@/components/expense/expense-filters";
 
@@ -152,6 +152,22 @@ export default function Dashboard() {
   }, [filteredExpenses]);
 
   const formatCurrency = (amount: number) => `৳ ${amount.toLocaleString()}`;
+
+  // Calculate budget summary
+  const budgetSummary = useMemo(() => {
+    const totalPlanned = plannedBreakdown.reduce((sum, item) => sum + item.planned, 0);
+    const totalActual = stats.totalExpenses;
+    const overBudget = Math.max(0, totalActual - totalPlanned);
+    const underBudget = Math.max(0, totalPlanned - totalActual);
+    
+    return {
+      totalPlanned,
+      totalActual,
+      overBudget,
+      underBudget,
+      hasPlannedBudget: totalPlanned > 0,
+    };
+  }, [plannedBreakdown, stats.totalExpenses]);
 
   const getTransactionIcon = (type: string, tag: string) => {
     if (type === 'income') return <Briefcase className="text-green-600 text-xs" />;
@@ -321,6 +337,80 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Budget Summary Cards */}
+      {budgetSummary.hasPlannedBudget && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <Card className="border-blue-200">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Planned Budget</p>
+                  <p className="text-lg md:text-2xl font-bold text-blue-600" data-testid="text-total-planned">
+                    {formatCurrency(budgetSummary.totalPlanned)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {filters.dateRange === 'this_week' && 'This week'}
+                    {filters.dateRange === 'this_month' && 'This month'}
+                    {filters.dateRange === 'this_year' && 'This year'}
+                    {filters.dateRange === 'all' && 'All time'}
+                  </p>
+                </div>
+                <Target className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-purple-200">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Actual Spending</p>
+                  <p className="text-lg md:text-2xl font-bold text-purple-600" data-testid="text-total-actual">
+                    {formatCurrency(budgetSummary.totalActual)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {budgetSummary.totalActual > budgetSummary.totalPlanned 
+                      ? `${((budgetSummary.totalActual / budgetSummary.totalPlanned) * 100).toFixed(0)}% of budget`
+                      : `${((budgetSummary.totalActual / budgetSummary.totalPlanned) * 100).toFixed(0)}% used`
+                    }
+                  </p>
+                </div>
+                <TrendingUp className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={budgetSummary.overBudget > 0 ? "border-red-200 bg-red-50/50" : "border-green-200 bg-green-50/50"}>
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    {budgetSummary.overBudget > 0 ? 'Over Budget' : 'Under Budget'}
+                  </p>
+                  <p className={`text-lg md:text-2xl font-bold ${budgetSummary.overBudget > 0 ? 'text-red-600' : 'text-green-600'}`} data-testid="text-budget-status">
+                    {budgetSummary.overBudget > 0 
+                      ? formatCurrency(budgetSummary.overBudget)
+                      : formatCurrency(budgetSummary.underBudget)
+                    }
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {budgetSummary.overBudget > 0 
+                      ? 'Exceeded planned budget'
+                      : 'Remaining budget'
+                    }
+                  </p>
+                </div>
+                {budgetSummary.overBudget > 0 ? (
+                  <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-red-600" />
+                ) : (
+                  <Target className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Planned vs Spent Breakdown */}
       {plannedBreakdown.length > 0 && (
