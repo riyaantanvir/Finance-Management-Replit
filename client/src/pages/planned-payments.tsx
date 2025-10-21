@@ -11,6 +11,7 @@ import { Pencil, Trash2, Plus, DollarSign, Calendar, Tag as TagIcon, Download, U
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Papa from "papaparse";
 import type { PlannedPayment, Tag, InsertPlannedPayment } from "@shared/schema";
 
 type CSVRow = {
@@ -151,20 +152,17 @@ export default function PlannedPayments() {
       return;
     }
 
-    const headers = ["tag", "amount", "frequency", "startDate", "endDate", "description"];
-    const csvContent = [
-      headers.join(","),
-      ...plannedPayments.map(p => [
-        p.tag,
-        p.amount,
-        p.frequency,
-        p.startDate,
-        p.endDate || "",
-        p.description || ""
-      ].join(","))
-    ].join("\n");
+    const data = plannedPayments.map(p => ({
+      tag: p.tag,
+      amount: p.amount,
+      frequency: p.frequency,
+      startDate: p.startDate,
+      endDate: p.endDate || "",
+      description: p.description || ""
+    }));
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const csv = Papa.unparse(data);
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -181,15 +179,14 @@ export default function PlannedPayments() {
   // Sample CSV download
   const handleDownloadSample = () => {
     const sampleData = [
-      ["tag", "amount", "frequency", "startDate", "endDate", "description"],
-      ["groceries", "500.00", "monthly", "2025-01-01", "", "Monthly grocery budget"],
-      ["utilities", "200.00", "monthly", "2025-01-01", "2025-12-31", "Utility bills"],
-      ["transportation", "50.00", "weekly", "2025-01-01", "", "Weekly transport costs"],
-      ["entertainment", "20.00", "daily", "2025-01-01", "", "Daily entertainment budget"]
+      { tag: "groceries", amount: "500.00", frequency: "monthly", startDate: "2025-01-01", endDate: "", description: "Monthly grocery budget" },
+      { tag: "utilities", amount: "200.00", frequency: "monthly", startDate: "2025-01-01", endDate: "2025-12-31", description: "Utility bills, water & electricity" },
+      { tag: "transportation", amount: "50.00", frequency: "weekly", startDate: "2025-01-01", endDate: "", description: "Weekly transport costs, including gas" },
+      { tag: "entertainment", amount: "20.00", frequency: "daily", startDate: "2025-01-01", endDate: "", description: "Daily entertainment budget" }
     ];
 
-    const csvContent = sampleData.map(row => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const csv = Papa.unparse(sampleData);
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -245,69 +242,75 @@ export default function PlannedPayments() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const lines = text.split("\n").filter(line => line.trim() !== "");
-        
-        if (lines.length < 2) {
-          toast({
-            title: "Invalid CSV",
-            description: "CSV file must have headers and at least one data row",
-            variant: "destructive",
-          });
-          return;
-        }
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim().toLowerCase(),
+      complete: (results) => {
+        try {
+          if (!results.data || results.data.length === 0) {
+            toast({
+              title: "Invalid CSV",
+              description: "CSV file must have at least one data row",
+              variant: "destructive",
+            });
+            return;
+          }
 
-        const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-        const requiredHeaders = ["tag", "amount", "frequency", "startdate"];
-        
-        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-        if (missingHeaders.length > 0) {
-          toast({
-            title: "Invalid CSV format",
-            description: `Missing required columns: ${missingHeaders.join(", ")}`,
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const data = lines.slice(1).map((line, index) => {
-          const values = line.split(",").map(v => v.trim());
-          const row: Omit<CSVRow, 'errors' | 'isValid'> = {
-            tag: values[headers.indexOf("tag")] || "",
-            amount: values[headers.indexOf("amount")] || "",
-            frequency: values[headers.indexOf("frequency")] || "",
-            startDate: values[headers.indexOf("startdate")] || "",
-            endDate: values[headers.indexOf("enddate")] || "",
-            description: values[headers.indexOf("description")] || ""
-          };
+          const requiredHeaders = ["tag", "amount", "frequency", "startdate"];
+          const headers = results.meta.fields || [];
+          const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
           
-          return validateRow(row, index);
-        });
+          if (missingHeaders.length > 0) {
+            toast({
+              title: "Invalid CSV format",
+              description: `Missing required columns: ${missingHeaders.join(", ")}`,
+              variant: "destructive",
+            });
+            return;
+          }
 
-        setCsvData(data);
-        setIsImportDialogOpen(true);
+          const data = (results.data as any[]).map((row, index) => {
+            const csvRow: Omit<CSVRow, 'errors' | 'isValid'> = {
+              tag: (row.tag || "").toString().trim(),
+              amount: (row.amount || "").toString().trim(),
+              frequency: (row.frequency || "").toString().trim(),
+              startDate: (row.startdate || "").toString().trim(),
+              endDate: (row.enddate || "").toString().trim(),
+              description: (row.description || "").toString().trim()
+            };
+            
+            return validateRow(csvRow, index);
+          });
 
-        const validCount = data.filter(row => row.isValid).length;
-        const invalidCount = data.length - validCount;
+          setCsvData(data);
+          setIsImportDialogOpen(true);
 
-        toast({
-          title: "CSV parsed successfully",
-          description: `${validCount} valid rows, ${invalidCount} rows with errors`,
-        });
+          const validCount = data.filter(row => row.isValid).length;
+          const invalidCount = data.length - validCount;
 
-      } catch (error) {
+          toast({
+            title: "CSV parsed successfully",
+            description: `${validCount} valid rows, ${invalidCount} rows with errors`,
+          });
+
+        } catch (error) {
+          toast({
+            title: "Error parsing CSV",
+            description: "Please check your CSV format",
+            variant: "destructive",
+          });
+        }
+      },
+      error: (error: Error) => {
         toast({
           title: "Error parsing CSV",
-          description: "Please check your CSV format",
+          description: error.message || "Please check your CSV format",
           variant: "destructive",
         });
       }
-    };
+    });
 
-    reader.readAsText(file);
     e.target.value = ""; // Reset input
   };
 
