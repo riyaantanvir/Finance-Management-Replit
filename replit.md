@@ -4,6 +4,14 @@ This is a full-stack Finance CRM application built with React, Express, and Type
 
 # Recent Changes (October 21, 2025)
 
+## Dashboard Budget Summary Cards
+- **Total Planned Budget**: Shows sum of all planned payments for the selected period with blue color coding
+- **Total Actual Spending**: Displays total expenses with purple color and percentage usage indicator
+- **Over/Under Budget Status**: Smart card that shows red alert for overspending or green for remaining budget
+- **Filter-Responsive**: All budget cards automatically update based on selected time period (this week/month/year/all)
+- **Conditional Display**: Budget summary only appears when planned payment data exists
+- **Visual Indicators**: Uses Target, TrendingUp, and AlertTriangle icons for quick recognition
+
 ## Planned Payment Manager - CSV Import/Export Feature
 - **CSV Export**: Download current planned payments as properly formatted CSV with automatic field escaping
 - **Sample Template**: Download pre-filled sample CSV demonstrating correct format with example data
