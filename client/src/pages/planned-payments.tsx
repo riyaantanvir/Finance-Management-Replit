@@ -7,9 +7,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, DollarSign, Calendar, Tag as TagIcon } from "lucide-react";
+import { Pencil, Trash2, Plus, DollarSign, Calendar, Tag as TagIcon, Download, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PlannedPayment, Tag, InsertPlannedPayment } from "@shared/schema";
+
+type CSVRow = {
+  tag: string;
+  amount: string;
+  frequency: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  errors: string[];
+  isValid: boolean;
+};
 
 export default function PlannedPayments() {
   const { toast } = useToast();
@@ -17,6 +30,11 @@ export default function PlannedPayments() {
   const [editingPayment, setEditingPayment] = useState<PlannedPayment | null>(null);
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [selectedFrequency, setSelectedFrequency] = useState<"monthly" | "weekly" | "daily" | "custom">("monthly");
+  
+  // CSV Import/Export state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [csvData, setCsvData] = useState<CSVRow[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: plannedPayments, isLoading: isLoadingPayments } = useQuery<PlannedPayment[]>({
     queryKey: ["/api/planned-payments"],
@@ -122,6 +140,243 @@ export default function PlannedPayments() {
     }
   };
 
+  // CSV Export function
+  const handleExport = () => {
+    if (!plannedPayments || plannedPayments.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "Add some planned payments first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["tag", "amount", "frequency", "startDate", "endDate", "description"];
+    const csvContent = [
+      headers.join(","),
+      ...plannedPayments.map(p => [
+        p.tag,
+        p.amount,
+        p.frequency,
+        p.startDate,
+        p.endDate || "",
+        p.description || ""
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `planned-payments-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export successful",
+      description: "CSV file has been downloaded",
+    });
+  };
+
+  // Sample CSV download
+  const handleDownloadSample = () => {
+    const sampleData = [
+      ["tag", "amount", "frequency", "startDate", "endDate", "description"],
+      ["groceries", "500.00", "monthly", "2025-01-01", "", "Monthly grocery budget"],
+      ["utilities", "200.00", "monthly", "2025-01-01", "2025-12-31", "Utility bills"],
+      ["transportation", "50.00", "weekly", "2025-01-01", "", "Weekly transport costs"],
+      ["entertainment", "20.00", "daily", "2025-01-01", "", "Daily entertainment budget"]
+    ];
+
+    const csvContent = sampleData.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "planned-payments-sample.csv";
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Sample downloaded",
+      description: "Use this template to prepare your data",
+    });
+  };
+
+  // Validate CSV row
+  const validateRow = (row: Omit<CSVRow, 'errors' | 'isValid'>, index: number): CSVRow => {
+    const errors: string[] = [];
+    
+    if (!row.tag || row.tag.trim() === "") {
+      errors.push("Tag is required");
+    }
+    
+    if (!row.amount || isNaN(parseFloat(row.amount)) || parseFloat(row.amount) <= 0) {
+      errors.push("Amount must be a positive number");
+    }
+    
+    const validFrequencies = ["monthly", "weekly", "daily", "custom"];
+    if (!row.frequency || !validFrequencies.includes(row.frequency.toLowerCase())) {
+      errors.push("Frequency must be: monthly, weekly, daily, or custom");
+    }
+    
+    if (!row.startDate || isNaN(Date.parse(row.startDate))) {
+      errors.push("Start date is required and must be valid (YYYY-MM-DD)");
+    }
+    
+    if (row.endDate && row.endDate.trim() !== "" && isNaN(Date.parse(row.endDate))) {
+      errors.push("End date must be valid (YYYY-MM-DD) or empty");
+    }
+
+    const availableTags = tags?.map(t => t.name) || [];
+    if (row.tag && !availableTags.includes(row.tag)) {
+      errors.push(`Tag "${row.tag}" doesn't exist. Available tags: ${availableTags.join(", ")}`);
+    }
+    
+    return {
+      ...row,
+      errors,
+      isValid: errors.length === 0
+    };
+  };
+
+  // Parse CSV file
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split("\n").filter(line => line.trim() !== "");
+        
+        if (lines.length < 2) {
+          toast({
+            title: "Invalid CSV",
+            description: "CSV file must have headers and at least one data row",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+        const requiredHeaders = ["tag", "amount", "frequency", "startdate"];
+        
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+        if (missingHeaders.length > 0) {
+          toast({
+            title: "Invalid CSV format",
+            description: `Missing required columns: ${missingHeaders.join(", ")}`,
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const data = lines.slice(1).map((line, index) => {
+          const values = line.split(",").map(v => v.trim());
+          const row: Omit<CSVRow, 'errors' | 'isValid'> = {
+            tag: values[headers.indexOf("tag")] || "",
+            amount: values[headers.indexOf("amount")] || "",
+            frequency: values[headers.indexOf("frequency")] || "",
+            startDate: values[headers.indexOf("startdate")] || "",
+            endDate: values[headers.indexOf("enddate")] || "",
+            description: values[headers.indexOf("description")] || ""
+          };
+          
+          return validateRow(row, index);
+        });
+
+        setCsvData(data);
+        setIsImportDialogOpen(true);
+
+        const validCount = data.filter(row => row.isValid).length;
+        const invalidCount = data.length - validCount;
+
+        toast({
+          title: "CSV parsed successfully",
+          description: `${validCount} valid rows, ${invalidCount} rows with errors`,
+        });
+
+      } catch (error) {
+        toast({
+          title: "Error parsing CSV",
+          description: "Please check your CSV format",
+          variant: "destructive",
+        });
+      }
+    };
+
+    reader.readAsText(file);
+    e.target.value = ""; // Reset input
+  };
+
+  // Update CSV row (for inline editing)
+  const updateCsvRow = (index: number, field: keyof Omit<CSVRow, 'errors' | 'isValid'>, value: string) => {
+    const newData = [...csvData];
+    newData[index] = {
+      ...newData[index],
+      [field]: value
+    };
+    
+    // Re-validate the updated row
+    newData[index] = validateRow(newData[index], index);
+    setCsvData(newData);
+  };
+
+  // Submit imported data
+  const handleImportSubmit = async () => {
+    const validRows = csvData.filter(row => row.isValid);
+    
+    if (validRows.length === 0) {
+      toast({
+        title: "No valid rows",
+        description: "Please fix all errors before importing",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImporting(true);
+
+    try {
+      const importPromises = validRows.map(row => {
+        const data: InsertPlannedPayment = {
+          tag: row.tag,
+          amount: row.amount,
+          frequency: row.frequency.toLowerCase() as "monthly" | "weekly" | "daily" | "custom",
+          startDate: row.startDate,
+          endDate: row.endDate || null,
+          description: row.description || null,
+          isActive: true
+        };
+        return apiRequest("POST", "/api/planned-payments", data);
+      });
+
+      await Promise.all(importPromises);
+
+      queryClient.invalidateQueries({ queryKey: ["/api/planned-payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/planned-breakdown"] });
+
+      toast({
+        title: "Import successful",
+        description: `${validRows.length} planned payments imported`,
+      });
+
+      setIsImportDialogOpen(false);
+      setCsvData([]);
+
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: "Some records could not be imported",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   if (isLoadingPayments) {
     return (
       <div className="p-6">
@@ -140,20 +395,55 @@ export default function PlannedPayments() {
           <h1 className="text-3xl font-bold">Planned Payment Manager</h1>
           <p className="text-muted-foreground">Set budget plans and track spending per tag</p>
         </div>
-        <Dialog open={isAddDialogOpen || !!editingPayment} onOpenChange={(open) => {
-          if (open) {
-            setIsAddDialogOpen(open);
-          } else {
-            setIsAddDialogOpen(false);
-            setEditingPayment(null);
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-planned-payment">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Planned Payment
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleDownloadSample}
+            data-testid="button-download-sample"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Sample CSV
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            data-testid="button-export"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <div>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="csv-upload"
+              data-testid="input-csv-upload"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => document.getElementById('csv-upload')?.click()}
+              data-testid="button-import"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
             </Button>
-          </DialogTrigger>
+          </div>
+          <Dialog open={isAddDialogOpen || !!editingPayment} onOpenChange={(open) => {
+            if (open) {
+              setIsAddDialogOpen(open);
+            } else {
+              setIsAddDialogOpen(false);
+              setEditingPayment(null);
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-planned-payment">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Planned Payment
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingPayment ? "Edit" : "Add"} Planned Payment</DialogTitle>
@@ -254,6 +544,7 @@ export default function PlannedPayments() {
           </DialogContent>
         </Dialog>
       </div>
+    </div>
 
       <div className="grid gap-4">
         {plannedPayments && plannedPayments.length > 0 ? (
@@ -319,6 +610,171 @@ export default function PlannedPayments() {
           </Card>
         )}
       </div>
+
+      {/* CSV Import Dialog */}
+      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Import Planned Payments from CSV</DialogTitle>
+            <DialogDescription>
+              Review and edit the data before importing. Fix any errors shown below.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto">
+            {csvData.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      Total Rows: {csvData.length}
+                    </p>
+                    <div className="flex gap-4 text-xs">
+                      <span className="flex items-center gap-1 text-green-600">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Valid: {csvData.filter(r => r.isValid).length}
+                      </span>
+                      <span className="flex items-center gap-1 text-destructive">
+                        <AlertCircle className="h-3 w-3" />
+                        Errors: {csvData.filter(r => !r.isValid).length}
+                      </span>
+                    </div>
+                  </div>
+                  {csvData.some(r => !r.isValid) && (
+                    <Alert className="flex-1 ml-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Please fix all errors before importing. Click on any cell to edit.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Tag</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Frequency</TableHead>
+                        <TableHead>Start Date</TableHead>
+                        <TableHead>End Date</TableHead>
+                        <TableHead>Description</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {csvData.map((row, index) => (
+                        <TableRow 
+                          key={index} 
+                          className={!row.isValid ? "bg-destructive/10" : ""}
+                          data-testid={`csv-row-${index}`}
+                        >
+                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell>
+                            {row.isValid ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                                <div className="text-xs text-destructive space-y-1">
+                                  {row.errors.map((err, i) => (
+                                    <div key={i}>{err}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={row.tag}
+                              onChange={(e) => updateCsvRow(index, 'tag', e.target.value)}
+                              className={`h-8 ${!row.isValid && row.errors.some(e => e.includes('Tag')) ? 'border-destructive' : ''}`}
+                              data-testid={`input-tag-${index}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={row.amount}
+                              onChange={(e) => updateCsvRow(index, 'amount', e.target.value)}
+                              className={`h-8 ${!row.isValid && row.errors.some(e => e.includes('Amount')) ? 'border-destructive' : ''}`}
+                              data-testid={`input-amount-${index}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={row.frequency}
+                              onValueChange={(value) => updateCsvRow(index, 'frequency', value)}
+                            >
+                              <SelectTrigger className={`h-8 ${!row.isValid && row.errors.some(e => e.includes('Frequency')) ? 'border-destructive' : ''}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="monthly">Monthly</SelectItem>
+                                <SelectItem value="weekly">Weekly</SelectItem>
+                                <SelectItem value="daily">Daily</SelectItem>
+                                <SelectItem value="custom">Custom</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={row.startDate}
+                              onChange={(e) => updateCsvRow(index, 'startDate', e.target.value)}
+                              className={`h-8 ${!row.isValid && row.errors.some(e => e.includes('Start date')) ? 'border-destructive' : ''}`}
+                              data-testid={`input-start-date-${index}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="date"
+                              value={row.endDate}
+                              onChange={(e) => updateCsvRow(index, 'endDate', e.target.value)}
+                              className="h-8"
+                              data-testid={`input-end-date-${index}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={row.description}
+                              onChange={(e) => updateCsvRow(index, 'description', e.target.value)}
+                              className="h-8"
+                              placeholder="Optional"
+                              data-testid={`input-description-${index}`}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsImportDialogOpen(false);
+                setCsvData([]);
+              }}
+              data-testid="button-cancel-import"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImportSubmit}
+              disabled={isImporting || csvData.filter(r => r.isValid).length === 0}
+              data-testid="button-submit-import"
+            >
+              {isImporting ? "Importing..." : `Import ${csvData.filter(r => r.isValid).length} Rows`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
