@@ -558,6 +558,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard Plan Vs Actual Analysis
+  app.get("/api/dashboard/plan-vs-actual", async (req, res) => {
+    try {
+      const dateRange = req.query.dateRange as string | undefined;
+      const tag = req.query.tag as string | undefined;
+      const budgetStatus = req.query.budgetStatus as string | undefined;
+      const startDate = req.query.startDate as string | undefined;
+      const endDate = req.query.endDate as string | undefined;
+
+      const summary = await storage.getPlanVsActualSummary({
+        dateRange,
+        tag,
+        budgetStatus,
+        startDate,
+        endDate
+      });
+
+      res.json(summary);
+    } catch (error) {
+      console.error('Plan vs Actual error:', error);
+      res.status(500).json({ message: "Failed to fetch plan vs actual data" });
+    }
+  });
+
   // Tag management routes
   app.get("/api/tags", async (req, res) => {
     try {
