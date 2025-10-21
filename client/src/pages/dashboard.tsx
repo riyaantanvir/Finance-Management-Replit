@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ArrowUp, ArrowDown, Wallet, Calendar, ShoppingCart, Briefcase, Car, Filter, Clock, Target, TrendingUp, AlertTriangle } from "lucide-react";
 import { Expense } from "@shared/schema";
 import ExpenseFilters from "@/components/expense/expense-filters";
+import ReportSwitcher, { ReportType } from "@/components/dashboard/report-switcher";
+import PlanVsActualView from "@/components/dashboard/plan-vs-actual-view";
 
 interface DashboardStats {
   totalIncome: number;
@@ -35,6 +37,7 @@ export default function Dashboard() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [tagModalOpen, setTagModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [reportType, setReportType] = useState<ReportType>("expense-breakdown");
 
   // Update time every second
   useEffect(() => {
@@ -246,7 +249,8 @@ export default function Dashboard() {
             }
           </p>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
+          <ReportSwitcher value={reportType} onChange={setReportType} />
           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md" data-testid="current-time">
             <Clock className="h-4 w-4" />
             {currentTime.toLocaleTimeString('en-US', { 
@@ -338,8 +342,11 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Budget Summary Cards */}
-      {budgetSummary.hasPlannedBudget && (
+      {/* Report Views */}
+      {reportType === "expense-breakdown" && (
+        <>
+          {/* Budget Summary Cards */}
+          {budgetSummary.hasPlannedBudget && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           <Card className="border-blue-200">
             <CardContent className="p-4 md:p-6">
@@ -620,12 +627,6 @@ export default function Dashboard() {
                   </Dialog>
                 );
               })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filtered Transactions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
