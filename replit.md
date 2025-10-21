@@ -2,9 +2,21 @@
 
 This is a full-stack Finance CRM application built with React, Express, and TypeScript. The system provides comprehensive expense tracking and financial management capabilities with role-based access control. Users can manage expenses, view financial dashboards, and administrators can manage user accounts. The application now includes an **Advantix Agency Work Reports System** for time tracking and project management with secure role-based permissions. The application features a modern UI built with shadcn/ui components and Tailwind CSS for styling.
 
-# Recent Changes (October 17, 2025)
+# Recent Changes (October 21, 2025)
 
-## UI/UX Improvements
+## Planned Payment Manager - CSV Import/Export Feature
+- **CSV Export**: Download current planned payments as properly formatted CSV with automatic field escaping
+- **Sample Template**: Download pre-filled sample CSV demonstrating correct format with example data
+- **CSV Import with Preview**: Upload CSV files and preview data in a table before submission
+- **Validation & Error Display**: Real-time validation of uploaded data with inline error messages
+- **Inline Editing**: Fix validation errors directly in the preview table before importing
+- **Papa Parse Integration**: Robust CSV parsing that handles quoted fields, commas in values, and special characters
+- **Error Handling**: Critical parse errors (unbalanced quotes, field mismatches) are detected and reported before data corruption
+- **Round-trip Capability**: Exported CSVs can be re-imported without data loss or formatting issues
+
+## Previous Changes (October 17, 2025)
+
+### UI/UX Improvements
 - **Sidebar Navigation Restructured**: Admin Panel moved to bottom of sidebar with visual divider
 - **User Profile Section**: Added profile section at bottom of sidebar with avatar, username, role display, and logout button
 - **Dashboard Default Filter**: Dashboard now defaults to showing "this month" data instead of "all time"
