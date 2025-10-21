@@ -429,6 +429,195 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(plannedPayments.createdAt));
   }
 
+  // Dashboard Analytics methods
+  async getPlanVsActualSummary(filters: {
+    dateRange?: string;
+    tag?: string;
+    budgetStatus?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<import("@shared/schema").PlanVsActualSummary> {
+    // Get filtered expenses (only expenses, not income)
+    const filteredExpenses = await this.getFilteredExpenses({
+      ...filters,
+      type: 'expense'
+    });
+
+    // Get active planned payments
+    const allPlannedPayments = await this.getActivePlannedPayments();
+
+    // Calculate actual spending by tag
+    const actualByTag = new Map<string, number>();
+    for (const expense of filteredExpenses) {
+      if (!expense.tag || expense.tag.trim() === '') continue;
+      const currentAmount = actualByTag.get(expense.tag) || 0;
+      actualByTag.set(expense.tag, currentAmount + parseFloat(expense.amount));
+    }
+
+    // Calculate planned amounts by tag (considering frequency and date range)
+    const plannedByTag = new Map<string, number>();
+    
+    // Get date range for calculating planned amounts
+    let rangeStartDate: Date | null = null;
+    let rangeEndDate: Date | null = null;
+    
+    if (filters.startDate && filters.endDate) {
+      rangeStartDate = new Date(filters.startDate);
+      rangeEndDate = new Date(filters.endDate);
+    } else if (filters.dateRange) {
+      const today = new Date();
+      const normalized = filters.dateRange.replace(/-/g, '_');
+      
+      switch (normalized) {
+        case 'this_week':
+          const dayOfWeek = today.getDay();
+          const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          rangeStartDate = new Date(today);
+          rangeStartDate.setDate(today.getDate() + diffToMonday);
+          rangeStartDate.setHours(0, 0, 0, 0);
+          rangeEndDate = new Date(rangeStartDate);
+          rangeEndDate.setDate(rangeStartDate.getDate() + 6);
+          rangeEndDate.setHours(23, 59, 59, 999);
+          break;
+        case 'this_month':
+          rangeStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          rangeEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+        case 'this_year':
+          rangeStartDate = new Date(today.getFullYear(), 0, 1);
+          rangeEndDate = new Date(today.getFullYear(), 11, 31, 23, 59, 59, 999);
+          break;
+        case 'all':
+        default:
+          // For 'all', use a very wide range
+          rangeStartDate = new Date('2000-01-01');
+          rangeEndDate = new Date('2100-12-31');
+          break;
+      }
+    }
+
+    // Calculate planned amounts based on frequency
+    for (const payment of allPlannedPayments) {
+      if (filters.tag && payment.tag !== filters.tag) continue;
+      
+      let plannedAmount = 0;
+      const amount = parseFloat(payment.amount);
+
+      if (payment.frequency === 'custom' && payment.startDate && payment.endDate) {
+        // For custom frequency, count occurrences between start and end dates
+        const paymentStart = new Date(payment.startDate);
+        const paymentEnd = new Date(payment.endDate);
+        
+        if (rangeStartDate && rangeEndDate) {
+          // Check if payment period overlaps with the filter range
+          const overlapStart = paymentStart > rangeStartDate ? paymentStart : rangeStartDate;
+          const overlapEnd = paymentEnd < rangeEndDate ? paymentEnd : rangeEndDate;
+          
+          if (overlapStart <= overlapEnd) {
+            // Count number of days in overlap
+            const daysInOverlap = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            const totalPaymentDays = Math.ceil((paymentEnd.getTime() - paymentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Prorate the amount
+            plannedAmount = (amount / totalPaymentDays) * daysInOverlap;
+          }
+        } else {
+          plannedAmount = amount;
+        }
+      } else {
+        // For frequency-based payments (daily, weekly, monthly)
+        if (rangeStartDate && rangeEndDate) {
+          const daysInRange = Math.ceil((rangeEndDate.getTime() - rangeStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          
+          switch (payment.frequency) {
+            case 'daily':
+              plannedAmount = amount * daysInRange;
+              break;
+            case 'weekly':
+              plannedAmount = amount * (daysInRange / 7);
+              break;
+            case 'monthly':
+              plannedAmount = amount * (daysInRange / 30.44); // Average days per month
+              break;
+            default:
+              plannedAmount = amount;
+          }
+        } else {
+          plannedAmount = amount;
+        }
+      }
+
+      const currentPlanned = plannedByTag.get(payment.tag) || 0;
+      plannedByTag.set(payment.tag, currentPlanned + plannedAmount);
+    }
+
+    // Get all unique tags
+    const allTagsSet = new Set([...Array.from(actualByTag.keys()), ...Array.from(plannedByTag.keys())]);
+    const allTags = Array.from(allTagsSet);
+
+    // Build category rows
+    const categories: import("@shared/schema").PlanVsActualRow[] = [];
+    
+    for (const tag of allTags) {
+      const planned = plannedByTag.get(tag) || 0;
+      const actual = actualByTag.get(tag) || 0;
+      const variance = planned - actual;
+      const percentage = planned > 0 ? (actual / planned) * 100 : 0;
+      
+      // Determine status (using 5% tolerance for "on track")
+      let status: import("@shared/schema").BudgetStatus;
+      if (planned === 0) {
+        status = 'on_track';
+      } else if (percentage > 105) {
+        status = 'over';
+      } else if (percentage < 95) {
+        status = 'under';
+      } else {
+        status = 'on_track';
+      }
+
+      const savedAmount = status === 'under' ? variance : 0;
+      const exceededAmount = status === 'over' ? Math.abs(variance) : 0;
+
+      // Apply budget status filter
+      if (filters.budgetStatus && filters.budgetStatus !== 'all' && filters.budgetStatus !== status) {
+        continue;
+      }
+
+      categories.push({
+        tag,
+        planned,
+        actual,
+        variance,
+        percentage,
+        status,
+        savedAmount,
+        exceededAmount
+      });
+    }
+
+    // Sort by tag name
+    categories.sort((a, b) => a.tag.localeCompare(b.tag));
+
+    // Calculate totals
+    const totalPlanned = categories.reduce((sum, cat) => sum + cat.planned, 0);
+    const totalActual = categories.reduce((sum, cat) => sum + cat.actual, 0);
+    const totalVariance = totalPlanned - totalActual;
+    const overBudgetCount = categories.filter(c => c.status === 'over').length;
+    const underBudgetCount = categories.filter(c => c.status === 'under').length;
+    const onTrackCount = categories.filter(c => c.status === 'on_track').length;
+
+    return {
+      totalPlanned,
+      totalActual,
+      totalVariance,
+      overBudgetCount,
+      underBudgetCount,
+      onTrackCount,
+      categories
+    };
+  }
+
   // Account methods
   async getAccount(id: string): Promise<Account | undefined> {
     const result = await db.query.accounts.findFirst({

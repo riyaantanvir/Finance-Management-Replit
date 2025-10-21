@@ -109,6 +109,15 @@ export interface IStorage {
   getActivePlannedPayments(): Promise<PlannedPayment[]>;
   getPlannedPaymentsByTag(tag: string): Promise<PlannedPayment[]>;
 
+  // Dashboard Analytics methods
+  getPlanVsActualSummary(filters: {
+    dateRange?: string;
+    tag?: string;
+    budgetStatus?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<import("@shared/schema").PlanVsActualSummary>;
+
   // Account methods
   getAccount(id: string): Promise<Account | undefined>;
   createAccount(account: InsertAccount): Promise<Account>;

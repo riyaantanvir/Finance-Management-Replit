@@ -502,3 +502,27 @@ export type UpdateCryptoAlert = z.infer<typeof updateCryptoAlertSchema>;
 export type InsertCryptoPortfolio = z.infer<typeof insertCryptoPortfolioSchema>;
 export type CryptoPortfolio = typeof cryptoPortfolio.$inferSelect;
 export type UpdateCryptoPortfolio = z.infer<typeof updateCryptoPortfolioSchema>;
+
+// Plan Vs Actual Types (derived data, not stored in database)
+export type BudgetStatus = "over" | "under" | "on_track";
+
+export interface PlanVsActualRow {
+  tag: string;
+  planned: number;
+  actual: number;
+  variance: number;
+  percentage: number;
+  status: BudgetStatus;
+  savedAmount: number;
+  exceededAmount: number;
+}
+
+export interface PlanVsActualSummary {
+  totalPlanned: number;
+  totalActual: number;
+  totalVariance: number;
+  overBudgetCount: number;
+  underBudgetCount: number;
+  onTrackCount: number;
+  categories: PlanVsActualRow[];
+}
