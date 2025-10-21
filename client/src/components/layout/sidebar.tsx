@@ -78,27 +78,27 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
   return (
     <div
       className={cn(
-        "fixed left-0 top-0 h-full bg-white border-r border-border transition-all duration-300 z-50 flex flex-col",
+        "fixed left-0 top-0 h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 z-50 flex flex-col shadow-lg",
         isMobile 
           ? isOpen 
-            ? "w-60 translate-x-0" 
-            : "w-60 -translate-x-full"
+            ? "w-64 translate-x-0" 
+            : "w-64 -translate-x-full"
           : isOpen 
-            ? "w-60" 
+            ? "w-64" 
             : "w-[60px]"
       )}
       data-testid="sidebar"
     >
       {/* Header section */}
-      <div className="p-4 border-b border-border">
+      <div className="p-3 border-b border-sidebar-border bg-gradient-to-r from-primary/10 to-sidebar">
         {isMobile && isOpen && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Finance CRM</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-bold text-primary">Finance CRM</h2>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8"
+              className="h-8 w-8 hover:bg-primary/10"
               data-testid="button-sidebar-close"
             >
               <X className="h-4 w-4" />
@@ -108,7 +108,7 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
       </div>
       
       {/* Navigation */}
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 py-2 px-2">
         {navigation.map((item) => {
           const isActive = location === item.href || (location === "/" && item.href === "/dashboard");
           return (
@@ -117,10 +117,10 @@ export default function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
               href={item.href}
               onClick={handleLinkClick}
               className={cn(
-                "flex items-center px-4 py-3 text-sm font-medium transition-colors mx-2 rounded-lg",
+                "flex items-center px-3 py-2.5 text-sm font-medium transition-all rounded-lg mb-1 group",
                 isActive
-                  ? "text-primary bg-accent border-l-4 border-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "text-sidebar-primary-foreground bg-sidebar-primary shadow-md"
+                  : "text-sidebar-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50"
               )}
               data-testid={`link-${item.name.toLowerCase().replace(' ', '-')}`}
             >
