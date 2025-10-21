@@ -438,7 +438,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard planned payments breakdown
   app.get("/api/dashboard/planned-breakdown", async (req, res) => {
     try {
-      const { period = 'this_month' } = req.query;
+      // Normalize the period parameter (convert hyphens to underscores)
+      const periodParam = req.query.period as string | undefined;
+      const period = (periodParam || 'this_month').trim().toLowerCase().replace(/-/g, '_');
       
       const expenses = await storage.getAllExpenses();
       const plannedPayments = await storage.getActivePlannedPayments();

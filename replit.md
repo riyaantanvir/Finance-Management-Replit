@@ -14,6 +14,12 @@ This is a full-stack Finance CRM application built with React, Express, and Type
 - **Error Handling**: Critical parse errors (unbalanced quotes, field mismatches) are detected and reported before data corruption
 - **Round-trip Capability**: Exported CSVs can be re-imported without data loss or formatting issues
 
+## Dashboard Planned Payments Bug Fix
+- **Fixed Query Parameter Mismatch**: Resolved issue where "This Month" filter showed ৳0 for all planned amounts
+- **Root Cause**: Frontend sent `this-month` (with hyphen) but backend expected `this_month` (with underscore)
+- **Solution**: Added parameter normalization to convert hyphens to underscores automatically
+- **Impact**: Dashboard now correctly displays planned payment amounts for all time period filters
+
 ## Previous Changes (October 17, 2025)
 
 ### UI/UX Improvements
