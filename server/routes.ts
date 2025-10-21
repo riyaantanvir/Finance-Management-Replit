@@ -5,6 +5,8 @@ import {
   insertUserSchema, 
   insertExpenseSchema, 
   updateExpenseSchema, 
+  insertPlannedPaymentSchema,
+  updatePlannedPaymentSchema,
   updateUserSchema,
   insertTagSchema,
   updateTagSchema,
@@ -303,6 +305,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete expense" });
+    }
+  });
+
+  // Planned Payment routes
+  app.get("/api/planned-payments", async (req, res) => {
+    try {
+      const plannedPayments = await storage.getAllPlannedPayments();
+      res.json(plannedPayments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch planned payments" });
+    }
+  });
+
+  app.get("/api/planned-payments/active", async (req, res) => {
+    try {
+      const plannedPayments = await storage.getActivePlannedPayments();
+      res.json(plannedPayments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch active planned payments" });
+    }
+  });
+
+  app.get("/api/planned-payments/tag/:tag", async (req, res) => {
+    try {
+      const { tag } = req.params;
+      const plannedPayments = await storage.getPlannedPaymentsByTag(tag);
+      res.json(plannedPayments);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch planned payments by tag" });
+    }
+  });
+
+  app.get("/api/planned-payments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const plannedPayment = await storage.getPlannedPayment(id);
+      
+      if (!plannedPayment) {
+        return res.status(404).json({ message: "Planned payment not found" });
+      }
+
+      res.json(plannedPayment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch planned payment" });
+    }
+  });
+
+  app.post("/api/planned-payments", async (req, res) => {
+    try {
+      const paymentData = insertPlannedPaymentSchema.parse(req.body);
+      const plannedPayment = await storage.createPlannedPayment(paymentData);
+      res.status(201).json(plannedPayment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create planned payment" });
+      }
+    }
+  });
+
+  app.put("/api/planned-payments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const paymentData = updatePlannedPaymentSchema.parse(req.body);
+      
+      const plannedPayment = await storage.updatePlannedPayment(id, paymentData);
+      if (!plannedPayment) {
+        return res.status(404).json({ message: "Planned payment not found" });
+      }
+
+      res.json(plannedPayment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update planned payment" });
+      }
+    }
+  });
+
+  app.delete("/api/planned-payments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deletePlannedPayment(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Planned payment not found" });
+      }
+
+      res.json({ message: "Planned payment deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete planned payment" });
     }
   });
 
