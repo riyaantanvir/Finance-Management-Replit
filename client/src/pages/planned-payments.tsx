@@ -248,6 +248,27 @@ export default function PlannedPayments() {
       transformHeader: (header: string) => header.trim().toLowerCase(),
       complete: (results) => {
         try {
+          // Check for Papa Parse errors
+          if (results.errors && results.errors.length > 0) {
+            const criticalErrors = results.errors.filter(
+              e => e.type === 'Quotes' || e.type === 'FieldMismatch'
+            );
+            
+            if (criticalErrors.length > 0) {
+              toast({
+                title: "CSV parsing error",
+                description: `Found ${criticalErrors.length} critical error(s): ${criticalErrors[0].message}`,
+                variant: "destructive",
+              });
+              return;
+            }
+
+            // Show warning for non-critical errors but continue
+            if (results.errors.length > 0) {
+              console.warn("CSV parsing warnings:", results.errors);
+            }
+          }
+
           if (!results.data || results.data.length === 0) {
             toast({
               title: "Invalid CSV",
