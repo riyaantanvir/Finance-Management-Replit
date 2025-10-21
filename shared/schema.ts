@@ -24,6 +24,9 @@ export const workReportStatusEnum = pgEnum("work_report_status", ["submitted", "
 export const cryptoAlertTypeEnum = pgEnum("crypto_alert_type", ["price_above", "price_below", "percent_change_up", "percent_change_down"]);
 export const cryptoAlertStatusEnum = pgEnum("crypto_alert_status", ["active", "triggered", "disabled"]);
 
+// Enums for Planned Payments
+export const plannedPaymentFrequencyEnum = pgEnum("planned_payment_frequency", ["daily", "weekly", "monthly", "custom"]);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -63,6 +66,20 @@ export const expenses = pgTable("expenses", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   tag: text("tag").notNull(),
   paymentMethod: text("payment_method").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Planned Payments Table
+export const plannedPayments = pgTable("planned_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tag: text("tag").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  frequency: plannedPaymentFrequencyEnum("frequency").notNull(),
+  startDate: text("start_date").notNull(), // For custom frequency
+  endDate: text("end_date"), // Optional, for custom frequency
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -289,6 +306,12 @@ export const insertExpenseSchema = createInsertSchema(expenses).omit({
   updatedAt: true,
 });
 
+export const insertPlannedPaymentSchema = createInsertSchema(plannedPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Fund Management Schemas
 export const insertAccountSchema = createInsertSchema(accounts).omit({
   id: true,
@@ -384,6 +407,7 @@ export const insertCryptoPortfolioSchema = createInsertSchema(cryptoPortfolio).o
 });
 
 export const updateExpenseSchema = insertExpenseSchema.partial();
+export const updatePlannedPaymentSchema = insertPlannedPaymentSchema.partial();
 export const updateTagSchema = insertTagSchema.partial();
 export const updatePaymentMethodSchema = insertPaymentMethodSchema.partial();
 export const updateAccountSchema = insertAccountSchema.partial();
@@ -421,6 +445,9 @@ export type UpdatePaymentMethod = z.infer<typeof updatePaymentMethodSchema>;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Expense = typeof expenses.$inferSelect;
 export type UpdateExpense = z.infer<typeof updateExpenseSchema>;
+export type InsertPlannedPayment = z.infer<typeof insertPlannedPaymentSchema>;
+export type PlannedPayment = typeof plannedPayments.$inferSelect;
+export type UpdatePlannedPayment = z.infer<typeof updatePlannedPaymentSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 
 // Fund Management Types
