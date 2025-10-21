@@ -627,6 +627,24 @@ export default function Dashboard() {
                   </Dialog>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+        </>
+      )}
+
+      {/* Plan Vs Actual Report View */}
+      {reportType === "plan-vs-actual" && (
+        <PlanVsActualView
+          dateRange={filters.dateRange}
+          tag={filters.tag}
+          startDate={filters.startDate}
+          endDate={filters.endDate}
+        />
+      )}
+
+      {/* Filtered Transactions */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
