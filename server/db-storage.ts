@@ -376,9 +376,7 @@ export class DatabaseStorage implements IStorage {
 
   // Planned Payment methods
   async getPlannedPayment(id: string): Promise<PlannedPayment | undefined> {
-    const result = await db.query.plannedPayments.findFirst({
-      where: eq(plannedPayments.id, id)
-    });
+    const [result] = await db.select().from(plannedPayments).where(eq(plannedPayments.id, id)).limit(1);
     return result;
   }
 
@@ -401,26 +399,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllPlannedPayments(): Promise<PlannedPayment[]> {
-    return await db.query.plannedPayments.findMany({
-      orderBy: [desc(plannedPayments.createdAt)]
-    });
+    return await db.select().from(plannedPayments).orderBy(desc(plannedPayments.createdAt));
   }
 
   async getActivePlannedPayments(): Promise<PlannedPayment[]> {
-    return await db.query.plannedPayments.findMany({
-      where: eq(plannedPayments.isActive, true),
-      orderBy: [desc(plannedPayments.createdAt)]
-    });
+    return await db.select().from(plannedPayments)
+      .where(eq(plannedPayments.isActive, true))
+      .orderBy(desc(plannedPayments.createdAt));
   }
 
   async getPlannedPaymentsByTag(tag: string): Promise<PlannedPayment[]> {
-    return await db.query.plannedPayments.findMany({
-      where: and(
+    return await db.select().from(plannedPayments)
+      .where(and(
         eq(plannedPayments.tag, tag),
         eq(plannedPayments.isActive, true)
-      ),
-      orderBy: [desc(plannedPayments.createdAt)]
-    });
+      ))
+      .orderBy(desc(plannedPayments.createdAt));
   }
 
   // Account methods

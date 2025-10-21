@@ -13,6 +13,14 @@ interface DashboardStats {
   thisMonth: number;
 }
 
+interface PlannedBreakdown {
+  tag: string;
+  spent: number;
+  planned: number;
+  remaining: number;
+  percentage: number;
+}
+
 export default function Dashboard() {
   const [filters, setFilters] = useState({
     dateRange: 'this_month',
@@ -115,6 +123,17 @@ export default function Dashboard() {
       thisMonth: thisMonthExpenses,
     };
   }, [filteredExpenses]);
+
+  // Fetch planned payment breakdown
+  const { data: plannedBreakdown = [], isLoading: plannedLoading } = useQuery<PlannedBreakdown[]>({
+    queryKey: ["/api/dashboard/planned-breakdown", filters.dateRange],
+    queryFn: async () => {
+      const url = `/api/dashboard/planned-breakdown?period=${filters.dateRange}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch planned breakdown');
+      return response.json();
+    },
+  });
 
   // Calculate tag-wise expense breakdown from filtered expenses
   const tagBreakdown = useMemo(() => {
@@ -302,6 +321,96 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Planned vs Spent Breakdown */}
+      {plannedBreakdown.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Budget Overview - Planned vs Spent</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {filters.dateRange === 'this_week' && 'This week'}
+                {filters.dateRange === 'this_month' && 'This month'}
+                {filters.dateRange === 'this_year' && 'This year'}
+                {filters.dateRange === 'all' && 'All time'}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {plannedBreakdown.map(({ tag, spent, planned, remaining, percentage }) => {
+                const isOverBudget = percentage > 100;
+                const displayPercentage = Math.min(percentage, 100);
+                
+                return (
+                  <div
+                    key={tag}
+                    className="p-4 border rounded-lg hover:shadow-md transition-all"
+                    data-testid={`card-planned-${tag}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-semibold text-base capitalize" data-testid={`text-planned-tag-${tag}`}>
+                        {tag}
+                      </span>
+                      <span className={`text-xs font-medium px-2 py-1 rounded ${
+                        isOverBudget 
+                          ? 'bg-red-100 text-red-700' 
+                          : percentage > 80 
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-green-100 text-green-700'
+                      }`} data-testid={`text-planned-percentage-${tag}`}>
+                        {percentage.toFixed(0)}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 mb-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Spent:</span>
+                        <span className={`font-medium ${isOverBudget ? 'text-red-600' : 'text-gray-900'}`} data-testid={`text-spent-${tag}`}>
+                          {formatCurrency(spent)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Planned:</span>
+                        <span className="font-medium text-gray-900" data-testid={`text-planned-${tag}`}>
+                          {formatCurrency(planned)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Remaining:</span>
+                        <span className={`font-medium ${isOverBudget ? 'text-red-600' : 'text-green-600'}`} data-testid={`text-remaining-${tag}`}>
+                          {isOverBudget ? `-${formatCurrency(Math.abs(remaining))}` : formatCurrency(remaining)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-300 ${
+                          isOverBudget 
+                            ? 'bg-red-500' 
+                            : percentage > 80 
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                        }`}
+                        style={{ width: `${displayPercentage}%` }}
+                        data-testid={`progress-planned-${tag}`}
+                      ></div>
+                    </div>
+                    
+                    {isOverBudget && (
+                      <p className="text-xs text-red-600 mt-2 font-medium">
+                        Over budget!
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tag Expense Breakdown */}
       {tagBreakdown.length > 0 && (

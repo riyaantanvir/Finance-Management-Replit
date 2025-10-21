@@ -24,6 +24,7 @@ import InvestmentsReportsPage from "@/pages/investments-reports";
 import InvestmentsSettingsPage from "@/pages/investments-settings";
 import SubscriptionsPage from "@/pages/subscriptions";
 import WorkReportsPage from "@/pages/agency/work-reports";
+import PlannedPaymentsPage from "@/pages/planned-payments";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -70,6 +71,7 @@ function AuthenticatedApp({ user }: { user: AuthState['user'] }) {
             <Route path="/investments/settings" component={InvestmentsSettingsPage} />
             <Route path="/subscriptions" component={SubscriptionsPage} />
             <Route path="/agency/work-reports" component={WorkReportsPage} />
+            <Route path="/planned-payments" component={PlannedPaymentsPage} />
           </Switch>
         </main>
       </div>
