@@ -47,7 +47,7 @@ export default function PlannedPayments() {
 
   // Fetch expenses for this month
   const { data: expenses } = useQuery<Expense[]>({
-    queryKey: ["/api/expenses/filtered"],
+    queryKey: ["/api/expenses/filtered", "this_month"],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append('dateRange', 'this_month');
