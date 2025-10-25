@@ -658,6 +658,91 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getPlannedBreakdown(period: string): Promise<Array<{
+    tag: string;
+    spent: number;
+    planned: number;
+    remaining: number;
+    percentage: number;
+  }>> {
+    const expenses = await this.getAllExpenses();
+    const plannedPayments = await this.getActivePlannedPayments();
+    const tags = await this.getAllTags();
+    
+    // Calculate date range
+    const now = new Date();
+    let startDate: Date;
+    let endDate = now;
+    
+    const normalized = period.trim().toLowerCase().replace(/-/g, '_');
+    
+    switch (normalized) {
+      case 'this_week':
+        const dayOfWeek = now.getDay();
+        const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - diff);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'last_week':
+        const currentDayOfWeek = now.getDay();
+        const diffToLastMonday = currentDayOfWeek === 0 ? -13 : -6 - currentDayOfWeek;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() + diffToLastMonday);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'this_month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case 'last_month':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        break;
+      case 'this_year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'last_year':
+        startDate = new Date(now.getFullYear() - 1, 0, 1);
+        endDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+        break;
+      default:
+        startDate = new Date(0);
+    }
+    
+    // Group expenses by tag for the selected period
+    const tagBreakdown = tags.map(tag => {
+      const tagExpenses = expenses.filter(e => 
+        e.type === 'expense' && 
+        e.tag === tag.name &&
+        new Date(e.date) >= startDate &&
+        new Date(e.date) <= endDate
+      );
+      
+      const spent = tagExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+      
+      // Find planned payment for this tag
+      const plannedPayment = plannedPayments.find(p => p.tag === tag.name);
+      let planned = 0;
+      
+      if (plannedPayment) {
+        planned = this.calculatePlannedAmount(plannedPayment, startDate, endDate);
+      }
+      
+      return {
+        tag: tag.name,
+        spent: spent,
+        planned: planned,
+        remaining: planned > 0 ? planned - spent : 0,
+        percentage: planned > 0 ? (spent / planned) * 100 : 0,
+      };
+    });
+    
+    return tagBreakdown.filter(t => t.spent > 0 || t.planned > 0);
+  }
+
   // Account methods
   async getAccount(id: string): Promise<Account | undefined> {
     const result = await db.query.accounts.findFirst({

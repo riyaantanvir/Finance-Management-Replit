@@ -454,104 +454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Normalize the period parameter (convert hyphens to underscores)
       const periodParam = req.query.period as string | undefined;
-      const period = (periodParam || 'this_month').trim().toLowerCase().replace(/-/g, '_');
+      const period = (periodParam || 'this_month').trim().toLowerCase();
       
-      const expenses = await storage.getAllExpenses();
-      const plannedPayments = await storage.getActivePlannedPayments();
-      const tags = await storage.getAllTags();
-      
-      // Calculate date range
-      const now = new Date();
-      let startDate: Date;
-      let endDate = now;
-      
-      switch (period) {
-        case 'this_week':
-          const dayOfWeek = now.getDay();
-          const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-          startDate = new Date(now);
-          startDate.setDate(now.getDate() - diff);
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case 'this_month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case 'this_year':
-          startDate = new Date(now.getFullYear(), 0, 1);
-          break;
-        default:
-          startDate = new Date(0);
-      }
-      
-      // Group expenses by tag for the selected period
-      const tagBreakdown = tags.map(tag => {
-        const tagExpenses = expenses.filter(e => 
-          e.type === 'expense' && 
-          e.tag === tag.name &&
-          new Date(e.date) >= startDate &&
-          new Date(e.date) <= endDate
-        );
-        
-        const spent = tagExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-        
-        // Find planned payment for this tag
-        const plannedPayment = plannedPayments.find(p => p.tag === tag.name);
-        let planned = 0;
-        
-        if (plannedPayment) {
-          // Calculate planned amount based on frequency and period
-          const amount = parseFloat(plannedPayment.amount);
-          
-          switch (period) {
-            case 'this_week':
-              if (plannedPayment.frequency === 'weekly') {
-                planned = amount;
-              } else if (plannedPayment.frequency === 'daily') {
-                planned = amount * 7;
-              } else if (plannedPayment.frequency === 'monthly') {
-                planned = amount / 4.33; // Average weeks in month
-              } else if (plannedPayment.frequency === 'custom') {
-                planned = amount; // Custom frequency treated as-is
-              }
-              break;
-              
-            case 'this_month':
-              if (plannedPayment.frequency === 'monthly' || plannedPayment.frequency === 'custom') {
-                planned = amount;
-              } else if (plannedPayment.frequency === 'weekly') {
-                planned = amount * 4.33; // Average weeks in month
-              } else if (plannedPayment.frequency === 'daily') {
-                planned = amount * 30; // Average days in month
-              }
-              break;
-              
-            case 'this_year':
-              if (plannedPayment.frequency === 'monthly') {
-                planned = amount * 12;
-              } else if (plannedPayment.frequency === 'weekly') {
-                planned = amount * 52;
-              } else if (plannedPayment.frequency === 'daily') {
-                planned = amount * 365;
-              } else if (plannedPayment.frequency === 'custom') {
-                planned = amount * 12; // Assume yearly for custom
-              }
-              break;
-              
-            default:
-              planned = 0;
-          }
-        }
-        
-        return {
-          tag: tag.name,
-          spent: spent,
-          planned: planned,
-          remaining: planned > 0 ? planned - spent : 0,
-          percentage: planned > 0 ? (spent / planned) * 100 : 0,
-        };
-      });
-      
-      res.json(tagBreakdown.filter(t => t.spent > 0 || t.planned > 0));
+      const breakdown = await storage.getPlannedBreakdown(period);
+      res.json(breakdown);
     } catch (error) {
       console.error('Dashboard breakdown error:', error);
       res.status(500).json({ message: "Failed to fetch dashboard breakdown" });

@@ -117,6 +117,14 @@ export interface IStorage {
     startDate?: string;
     endDate?: string;
   }): Promise<import("@shared/schema").PlanVsActualSummary>;
+  
+  getPlannedBreakdown(period: string): Promise<Array<{
+    tag: string;
+    spent: number;
+    planned: number;
+    remaining: number;
+    percentage: number;
+  }>>;
 
   // Account methods
   getAccount(id: string): Promise<Account | undefined>;
