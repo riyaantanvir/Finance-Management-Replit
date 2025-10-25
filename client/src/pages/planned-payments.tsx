@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, Plus, DollarSign, Calendar, Tag as TagIcon, Download, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Pencil, Trash2, Plus, DollarSign, Calendar, Tag as TagIcon, Download, Upload, FileText, AlertCircle, CheckCircle2, Target, TrendingUp } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import Papa from "papaparse";
-import type { PlannedPayment, Tag, InsertPlannedPayment } from "@shared/schema";
+import type { PlannedPayment, Tag, InsertPlannedPayment, Expense } from "@shared/schema";
 
 type CSVRow = {
   tag: string;
@@ -44,6 +44,46 @@ export default function PlannedPayments() {
   const { data: tags } = useQuery<Tag[]>({
     queryKey: ["/api/tags"],
   });
+
+  // Fetch expenses for this month
+  const { data: expenses } = useQuery<Expense[]>({
+    queryKey: ["/api/expenses/filtered"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('dateRange', 'this_month');
+      const response = await fetch(`/api/expenses/filtered?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch expenses');
+      return response.json();
+    },
+  });
+
+  // Calculate summary stats
+  const summaryStats = useMemo(() => {
+    const totalPlanned = (plannedPayments || []).reduce((sum, payment) => {
+      const amount = parseFloat(payment.amount);
+      
+      // Convert all frequencies to monthly equivalent
+      switch (payment.frequency) {
+        case 'monthly':
+          return sum + amount;
+        case 'weekly':
+          return sum + (amount * 4.33); // 52 weeks / 12 months
+        case 'daily':
+          return sum + (amount * 30); // Average 30 days per month
+        case 'custom':
+          // For custom, just add the amount as-is (user defines the period)
+          return sum + amount;
+        default:
+          return sum;
+      }
+    }, 0);
+
+    const totalExpense = (expenses || [])
+      .filter(exp => exp.type === 'expense')
+      .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
+
+    return { totalPlanned, totalExpense };
+  }, [plannedPayments, expenses]);
 
   // Sync select state when editing payment changes
   useEffect(() => {
@@ -570,44 +610,61 @@ export default function PlannedPayments() {
       </div>
     </div>
 
-      <div className="grid gap-4">
+      {/* Summary Cards */}
+      <div className="grid gap-3 md:grid-cols-2 mb-6">
+        <Card className="border-blue-200" data-testid="card-total-planned">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Planned (This Month)</p>
+                <p className="text-2xl font-bold text-blue-600" data-testid="text-total-planned">
+                  ৳{summaryStats.totalPlanned.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <Target className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-purple-200" data-testid="card-total-expense">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Expense (This Month)</p>
+                <p className="text-2xl font-bold text-purple-600" data-testid="text-total-expense">
+                  ৳{summaryStats.totalExpense.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {plannedPayments && plannedPayments.length > 0 ? (
           plannedPayments.map((payment) => (
-            <Card key={payment.id} data-testid={`card-planned-payment-${payment.id}`}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <TagIcon className="h-5 w-5" />
-                      {payment.tag}
-                    </CardTitle>
-                    <CardDescription className="mt-2 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="font-semibold">${parseFloat(payment.amount).toFixed(2)}</span>
-                        <span className="text-xs">/ {payment.frequency}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-xs">
-                          {new Date(payment.startDate).toLocaleDateString()}
-                          {payment.endDate && ` - ${new Date(payment.endDate).toLocaleDateString()}`}
-                        </span>
-                      </div>
-                    </CardDescription>
+            <Card key={payment.id} className="hover:shadow-md transition-shadow" data-testid={`card-planned-payment-${payment.id}`}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    <TagIcon className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm truncate">{payment.tag}</span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-7 w-7"
                       onClick={() => setEditingPayment(payment)}
                       data-testid={`button-edit-${payment.id}`}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-7 w-7"
                       onClick={() => {
                         if (confirm(`Delete planned payment for ${payment.tag}?`)) {
                           deleteMutation.mutate(payment.id);
@@ -615,11 +672,24 @@ export default function PlannedPayments() {
                       }}
                       data-testid={`button-delete-${payment.id}`}
                     >
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
                   </div>
                 </div>
-              </CardHeader>
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-bold">৳{parseFloat(payment.amount).toFixed(2)}</span>
+                    <span className="text-xs text-muted-foreground">/ {payment.frequency}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {new Date(payment.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {payment.endDate && ` - ${new Date(payment.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           ))
         ) : (
