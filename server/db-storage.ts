@@ -69,6 +69,67 @@ export class DatabaseStorage implements IStorage {
     this.initializeDefaultAdmin();
   }
 
+  private calculatePlannedAmount(payment: PlannedPayment, rangeStart: Date, rangeEnd: Date): number {
+    const amount = parseFloat(payment.amount);
+    
+    // Determine overlap window
+    let overlapStart = rangeStart;
+    let overlapEnd = rangeEnd;
+    
+    if (payment.startDate) {
+      const paymentStart = new Date(payment.startDate);
+      overlapStart = paymentStart > rangeStart ? paymentStart : rangeStart;
+    }
+    
+    if (payment.endDate) {
+      const paymentEnd = new Date(payment.endDate);
+      overlapEnd = paymentEnd < rangeEnd ? paymentEnd : rangeEnd;
+    }
+    
+    // No overlap
+    if (overlapStart > overlapEnd) {
+      return 0;
+    }
+    
+    // Calculate overlap days
+    const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const totalRangeDays = Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    // Handle custom frequency with specific date range
+    if (payment.frequency === 'custom' && payment.startDate && payment.endDate) {
+      const paymentStart = new Date(payment.startDate);
+      const paymentEnd = new Date(payment.endDate);
+      const totalPaymentDays = Math.ceil((paymentEnd.getTime() - paymentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Prorate based on overlap
+      return (amount / totalPaymentDays) * overlapDays;
+    }
+    
+    // For frequency-based payments, check if range matches frequency
+    switch (payment.frequency) {
+      case 'daily':
+        // Always just multiply by days
+        return amount * overlapDays;
+        
+      case 'weekly':
+        // Check if range is approximately a week (6-8 days)
+        if (totalRangeDays >= 6 && totalRangeDays <= 8 && overlapDays === totalRangeDays) {
+          return amount; // Full weekly amount
+        }
+        return amount * (overlapDays / 7);
+        
+      case 'monthly':
+        // Check if range is approximately a month (28-31 days)
+        if (totalRangeDays >= 28 && totalRangeDays <= 31 && overlapDays === totalRangeDays) {
+          return amount; // Full monthly amount
+        }
+        return amount * (overlapDays / 30.44);
+        
+      default:
+        return overlapDays === totalRangeDays ? amount : 0;
+    }
+  }
+
   private async initializeDefaultAdmin() {
     try {
       const existingAdmin = await db.query.users.findFirst({
@@ -519,50 +580,11 @@ export class DatabaseStorage implements IStorage {
       if (filters.tag && payment.tag !== filters.tag) continue;
       
       let plannedAmount = 0;
-      const amount = parseFloat(payment.amount);
-
-      if (payment.frequency === 'custom' && payment.startDate && payment.endDate) {
-        // For custom frequency, count occurrences between start and end dates
-        const paymentStart = new Date(payment.startDate);
-        const paymentEnd = new Date(payment.endDate);
-        
-        if (rangeStartDate && rangeEndDate) {
-          // Check if payment period overlaps with the filter range
-          const overlapStart = paymentStart > rangeStartDate ? paymentStart : rangeStartDate;
-          const overlapEnd = paymentEnd < rangeEndDate ? paymentEnd : rangeEndDate;
-          
-          if (overlapStart <= overlapEnd) {
-            // Count number of days in overlap
-            const daysInOverlap = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            const totalPaymentDays = Math.ceil((paymentEnd.getTime() - paymentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-            
-            // Prorate the amount
-            plannedAmount = (amount / totalPaymentDays) * daysInOverlap;
-          }
-        } else {
-          plannedAmount = amount;
-        }
+      
+      if (rangeStartDate && rangeEndDate) {
+        plannedAmount = this.calculatePlannedAmount(payment, rangeStartDate, rangeEndDate);
       } else {
-        // For frequency-based payments (daily, weekly, monthly)
-        if (rangeStartDate && rangeEndDate) {
-          const daysInRange = Math.ceil((rangeEndDate.getTime() - rangeStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          
-          switch (payment.frequency) {
-            case 'daily':
-              plannedAmount = amount * daysInRange;
-              break;
-            case 'weekly':
-              plannedAmount = amount * (daysInRange / 7);
-              break;
-            case 'monthly':
-              plannedAmount = amount * (daysInRange / 30.44); // Average days per month
-              break;
-            default:
-              plannedAmount = amount;
-          }
-        } else {
-          plannedAmount = amount;
-        }
+        plannedAmount = parseFloat(payment.amount);
       }
 
       const currentPlanned = plannedByTag.get(payment.tag) || 0;
