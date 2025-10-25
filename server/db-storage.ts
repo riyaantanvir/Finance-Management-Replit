@@ -72,61 +72,66 @@ export class DatabaseStorage implements IStorage {
   private calculatePlannedAmount(payment: PlannedPayment, rangeStart: Date, rangeEnd: Date): number {
     const amount = parseFloat(payment.amount);
     
-    // Determine overlap window
-    let overlapStart = rangeStart;
-    let overlapEnd = rangeEnd;
-    
+    // Check if payment is active during this range
     if (payment.startDate) {
       const paymentStart = new Date(payment.startDate);
-      overlapStart = paymentStart > rangeStart ? paymentStart : rangeStart;
+      // Payment hasn't started yet
+      if (paymentStart > rangeEnd) {
+        return 0;
+      }
     }
     
     if (payment.endDate) {
       const paymentEnd = new Date(payment.endDate);
-      overlapEnd = paymentEnd < rangeEnd ? paymentEnd : rangeEnd;
+      // Payment has ended
+      if (paymentEnd < rangeStart) {
+        return 0;
+      }
     }
     
-    // No overlap
-    if (overlapStart > overlapEnd) {
-      return 0;
-    }
-    
-    // Calculate overlap days (no +1 needed since end date includes full day at 23:59:59)
-    const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate how many days are in the range
     const totalRangeDays = Math.floor((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    // Handle custom frequency with specific date range
-    if (payment.frequency === 'custom' && payment.startDate && payment.endDate) {
-      const paymentStart = new Date(payment.startDate);
-      const paymentEnd = new Date(payment.endDate);
-      const totalPaymentDays = Math.ceil((paymentEnd.getTime() - paymentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      
-      // Prorate based on overlap
-      return (amount / totalPaymentDays) * overlapDays;
-    }
-    
-    // For frequency-based payments, check if range matches frequency
+    // Simple logic: match frequency to range
     switch (payment.frequency) {
       case 'daily':
-        // Always just multiply by days
-        return amount * overlapDays;
+        return amount * totalRangeDays;
         
       case 'weekly':
-        // Check if range is approximately a week (6-8 days)
-        if (totalRangeDays >= 6 && totalRangeDays <= 8 && overlapDays === totalRangeDays) {
-          return amount; // Full weekly amount
+        // If viewing a week, show weekly amount. Otherwise prorate.
+        if (totalRangeDays >= 6 && totalRangeDays <= 8) {
+          return amount; // Show exact weekly amount
         }
-        return amount * (overlapDays / 7);
+        return amount * (totalRangeDays / 7);
         
       case 'monthly':
-        // Check if range is approximately a month (28-31 days)
-        if (totalRangeDays >= 28 && totalRangeDays <= 31 && overlapDays === totalRangeDays) {
-          return amount; // Full monthly amount
+        // If viewing a month, show monthly amount. Otherwise prorate.
+        if (totalRangeDays >= 28 && totalRangeDays <= 31) {
+          return amount; // Show exact monthly amount
         }
-        return amount * (overlapDays / 30.44);
+        return amount * (totalRangeDays / 30);
+        
+      case 'custom':
+        if (payment.startDate && payment.endDate) {
+          const paymentStart = new Date(payment.startDate);
+          const paymentEnd = new Date(payment.endDate);
+          const totalPaymentDays = Math.floor((paymentEnd.getTime() - paymentStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          
+          // Calculate overlap
+          const overlapStart = paymentStart > rangeStart ? paymentStart : rangeStart;
+          const overlapEnd = paymentEnd < rangeEnd ? paymentEnd : rangeEnd;
+          
+          if (overlapStart > overlapEnd) {
+            return 0;
+          }
+          
+          const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return (amount / totalPaymentDays) * overlapDays;
+        }
+        return amount;
         
       default:
-        return overlapDays === totalRangeDays ? amount : 0;
+        return amount;
     }
   }
 
