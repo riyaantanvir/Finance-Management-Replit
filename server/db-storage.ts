@@ -91,9 +91,9 @@ export class DatabaseStorage implements IStorage {
       return 0;
     }
     
-    // Calculate overlap days
-    const overlapDays = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const totalRangeDays = Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate overlap days (no +1 needed since end date includes full day at 23:59:59)
+    const overlapDays = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const totalRangeDays = Math.floor((rangeEnd.getTime() - rangeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     // Handle custom frequency with specific date range
     if (payment.frequency === 'custom' && payment.startDate && payment.endDate) {
