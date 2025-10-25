@@ -368,6 +368,80 @@ export default function PlanVsActualView({ dateRange, tag, startDate, endDate }:
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Budget Summary Totals */}
+              {sortedCategories.length > 0 && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {(budgetStatus === 'all' || budgetStatus === 'under') && (
+                      <Card className="border-green-200 bg-green-50/50" data-testid="card-total-under-budget">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Total Under Budget</p>
+                              <p className="text-2xl font-bold text-green-600" data-testid="text-total-under-budget">
+                                {formatCurrency(
+                                  sortedCategories
+                                    .filter(cat => cat.status === 'under')
+                                    .reduce((sum, cat) => sum + cat.variance, 0)
+                                )}
+                              </p>
+                            </div>
+                            <ArrowDown className="h-8 w-8 text-green-600" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {(budgetStatus === 'all' || budgetStatus === 'over') && (
+                      <Card className="border-red-200 bg-red-50/50" data-testid="card-total-over-budget">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Total Over Budget</p>
+                              <p className="text-2xl font-bold text-red-600" data-testid="text-total-over-budget">
+                                {formatCurrency(
+                                  Math.abs(
+                                    sortedCategories
+                                      .filter(cat => cat.status === 'over')
+                                      .reduce((sum, cat) => sum + cat.variance, 0)
+                                  )
+                                )}
+                              </p>
+                            </div>
+                            <ArrowUp className="h-8 w-8 text-red-600" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {budgetStatus === 'all' && (
+                      <Card className="border-blue-200 bg-blue-50/50" data-testid="card-net-variance">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Net Variance</p>
+                              <p className={`text-2xl font-bold ${
+                                sortedCategories.reduce((sum, cat) => sum + cat.variance, 0) >= 0 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`} data-testid="text-net-variance">
+                                {formatCurrency(
+                                  Math.abs(sortedCategories.reduce((sum, cat) => sum + cat.variance, 0))
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {sortedCategories.reduce((sum, cat) => sum + cat.variance, 0) >= 0 ? 'Saved' : 'Over'}
+                              </p>
+                            </div>
+                            <CheckCircle className="h-8 w-8 text-blue-600" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
