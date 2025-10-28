@@ -403,7 +403,10 @@ export class DatabaseStorage implements IStorage {
       let startDate: Date;
       let endDate = now;
 
-      switch (filters.dateRange) {
+      // Normalize hyphens to underscores for consistency
+      const normalizedRange = filters.dateRange.replace(/-/g, '_');
+
+      switch (normalizedRange) {
         case 'today':
           startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
@@ -414,10 +417,10 @@ export class DatabaseStorage implements IStorage {
           startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
           endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
           break;
-        case 'this-month':
+        case 'this_month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
-        case 'last-month':
+        case 'last_month':
           startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
           endDate = new Date(now.getFullYear(), now.getMonth(), 0);
           break;
