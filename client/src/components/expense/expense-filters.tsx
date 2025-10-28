@@ -37,19 +37,19 @@ export default function ExpenseFilters({ filters, onFilterChange, onDateRangeCha
     }
   };
   return (
-    <Card className="mb-4 md:mb-6">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg md:text-xl">Filters</CardTitle>
+    <Card className="mb-2">
+      <CardHeader className="pb-2 pt-3 px-3">
+        <CardTitle className="text-sm font-semibold">Filters</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <CardContent className="px-3 pb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <div>
-            <Label className="text-sm font-medium">Date Range</Label>
+            <Label className="text-xs font-medium">Date Range</Label>
             <Select
               value={filters.dateRange}
               onValueChange={(value) => onFilterChange('dateRange', value)}
             >
-              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-date-range">
+              <SelectTrigger className="mt-1 h-8 text-xs" data-testid="select-filter-date-range">
                 <SelectValue placeholder="Select Date Range" />
               </SelectTrigger>
               <SelectContent>
@@ -64,12 +64,12 @@ export default function ExpenseFilters({ filters, onFilterChange, onDateRangeCha
           </div>
           
           <div>
-            <Label className="text-sm font-medium">Tag</Label>
+            <Label className="text-xs font-medium">Tag</Label>
             <Select
               value={filters.tag}
               onValueChange={(value) => onFilterChange('tag', value)}
             >
-              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-tag">
+              <SelectTrigger className="mt-1 h-8 text-xs" data-testid="select-filter-tag">
                 <SelectValue placeholder="All Tags" />
               </SelectTrigger>
               <SelectContent>
@@ -84,12 +84,12 @@ export default function ExpenseFilters({ filters, onFilterChange, onDateRangeCha
           </div>
           
           <div>
-            <Label className="text-sm font-medium">Payment Method</Label>
+            <Label className="text-xs font-medium">Payment Method</Label>
             <Select
               value={filters.paymentMethod}
               onValueChange={(value) => onFilterChange('paymentMethod', value)}
             >
-              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-payment-method">
+              <SelectTrigger className="mt-1 h-8 text-xs" data-testid="select-filter-payment-method">
                 <SelectValue placeholder="All Methods" />
               </SelectTrigger>
               <SelectContent>
@@ -104,12 +104,12 @@ export default function ExpenseFilters({ filters, onFilterChange, onDateRangeCha
           </div>
           
           <div>
-            <Label className="text-sm font-medium">Type</Label>
+            <Label className="text-xs font-medium">Type</Label>
             <Select
               value={filters.type}
               onValueChange={(value) => onFilterChange('type', value)}
             >
-              <SelectTrigger className="mt-1 h-10 md:h-11" data-testid="select-filter-type">
+              <SelectTrigger className="mt-1 h-8 text-xs" data-testid="select-filter-type">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>

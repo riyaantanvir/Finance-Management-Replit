@@ -226,37 +226,37 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-3 md:p-4 space-y-3 md:space-y-4 fade-in" data-testid="dashboard-page">
+    <div className="p-2 md:p-3 space-y-2 md:space-y-3 fade-in" data-testid="dashboard-page">
       {/* Filter Toggle and Filters */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div>
-          <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-lg font-bold mb-0.5">Dashboard</h1>
+          <p className="text-muted-foreground text-xs">
             {filters.dateRange !== 'all' || filters.tag !== 'all' || filters.paymentMethod !== 'all' || filters.type !== 'all'
               ? 'Filtered view of your financial data'
               : 'Overview of your financial data'
             }
           </p>
         </div>
-        <div className="flex gap-2 items-center flex-wrap">
+        <div className="flex gap-1.5 items-center flex-wrap">
           <ReportSwitcher value={reportType} onChange={setReportType} />
-          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md" data-testid="current-time">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1.5 rounded-md" data-testid="current-time">
+            <Clock className="h-3 w-3" />
             {currentTime.toLocaleTimeString('en-US', { 
               hour12: false, 
               hour: '2-digit', 
               minute: '2-digit' 
             })}
           </div>
-          <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-md">
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1.5 rounded-md">
             {filteredExpenses.length} {filteredExpenses.length === 1 ? 'transaction' : 'transactions'}
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1.5 text-xs bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
             data-testid="button-toggle-filters"
           >
-            <Filter className="h-4 w-4" />
+            <Filter className="h-3 w-3" />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
         </div>
@@ -273,66 +273,66 @@ export default function Dashboard() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         <Card className="card-hover border-l-4 border-l-green-500">
-          <CardContent className="p-4">
+          <CardContent className="p-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Total Income</p>
-                <p className="text-xl md:text-2xl font-bold text-green-600 mt-1" data-testid="text-total-income">
+                <p className="text-[10px] text-muted-foreground font-medium">Total Income</p>
+                <p className="text-base font-bold text-green-600 mt-0.5" data-testid="text-total-income">
                   {formatCurrency(stats.totalIncome)}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                <ArrowUp className="h-6 w-6 text-green-600" />
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <ArrowUp className="h-4 w-4 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-hover border-l-4 border-l-red-500">
-          <CardContent className="p-4">
+          <CardContent className="p-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Total Expenses</p>
-                <p className="text-xl md:text-2xl font-bold text-red-600 mt-1" data-testid="text-total-expenses">
+                <p className="text-[10px] text-muted-foreground font-medium">Total Expenses</p>
+                <p className="text-base font-bold text-red-600 mt-0.5" data-testid="text-total-expenses">
                   {formatCurrency(stats.totalExpenses)}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
-                <ArrowDown className="h-6 w-6 text-red-600" />
+              <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                <ArrowDown className="h-4 w-4 text-red-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-hover border-l-4 border-l-primary">
-          <CardContent className="p-4">
+          <CardContent className="p-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">Net Balance</p>
-                <p className="text-xl md:text-2xl font-bold text-primary mt-1" data-testid="text-net-balance">
+                <p className="text-[10px] text-muted-foreground font-medium">Net Balance</p>
+                <p className="text-base font-bold text-primary mt-0.5" data-testid="text-net-balance">
                   {formatCurrency(stats.netBalance)}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-primary" />
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Wallet className="h-4 w-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="card-hover border-l-4 border-l-purple-500">
-          <CardContent className="p-4">
+          <CardContent className="p-2.5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground font-medium">This Month</p>
-                <p className="text-xl md:text-2xl font-bold mt-1" data-testid="text-this-month">
+                <p className="text-[10px] text-muted-foreground font-medium">This Month</p>
+                <p className="text-base font-bold mt-0.5" data-testid="text-this-month">
                   {formatCurrency(stats.thisMonth)}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-purple-600" />
+              <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -344,59 +344,59 @@ export default function Dashboard() {
         <>
           {/* Budget Summary Cards */}
           {budgetSummary.hasPlannedBudget && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           <Card className="card-hover border-l-4 border-l-blue-500">
-            <CardContent className="p-4">
+            <CardContent className="p-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Planned Budget</p>
-                  <p className="text-xl md:text-2xl font-bold text-blue-600 mt-1" data-testid="text-total-planned">
+                  <p className="text-[10px] text-muted-foreground font-medium">Total Planned Budget</p>
+                  <p className="text-base font-bold text-blue-600 mt-0.5" data-testid="text-total-planned">
                     {formatCurrency(budgetSummary.totalPlanned)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
                     {filters.dateRange === 'this_week' && 'This week'}
                     {filters.dateRange === 'this_month' && 'This month'}
                     {filters.dateRange === 'this_year' && 'This year'}
                     {filters.dateRange === 'all' && 'All time'}
                   </p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Target className="h-6 w-6 text-blue-600" />
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Target className="h-4 w-4 text-blue-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="card-hover border-l-4 border-l-purple-500">
-            <CardContent className="p-4">
+            <CardContent className="p-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">Total Actual Spending</p>
-                  <p className="text-xl md:text-2xl font-bold text-purple-600 mt-1" data-testid="text-total-actual">
+                  <p className="text-[10px] text-muted-foreground font-medium">Total Actual Spending</p>
+                  <p className="text-base font-bold text-purple-600 mt-0.5" data-testid="text-total-actual">
                     {formatCurrency(budgetSummary.totalActual)}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
                     {budgetSummary.totalActual > budgetSummary.totalPlanned 
                       ? `${((budgetSummary.totalActual / budgetSummary.totalPlanned) * 100).toFixed(0)}% of budget`
                       : `${((budgetSummary.totalActual / budgetSummary.totalPlanned) * 100).toFixed(0)}% used`
                     }
                   </p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className={`card-hover border-l-4 ${budgetSummary.overBudget > 0 ? "border-l-red-500 bg-red-50/50" : "border-l-green-500 bg-green-50/50"}`}>
-            <CardContent className="p-4">
+            <CardContent className="p-2.5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground font-medium">
+                  <p className="text-[10px] text-muted-foreground font-medium">
                     {budgetSummary.overBudget > 0 ? 'Over Budget' : 'Under Budget'}
                   </p>
-                  <p className={`text-xl md:text-2xl font-bold mt-1 ${budgetSummary.overBudget > 0 ? 'text-red-600' : 'text-green-600'}`} data-testid="text-budget-status">
+                  <p className={`text-base font-bold mt-0.5 ${budgetSummary.overBudget > 0 ? 'text-red-600' : 'text-green-600'}`} data-testid="text-budget-status">
                     {budgetSummary.overBudget > 0 
                       ? formatCurrency(budgetSummary.overBudget)
                       : formatCurrency(budgetSummary.underBudget)
