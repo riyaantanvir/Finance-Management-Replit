@@ -15,7 +15,7 @@ export default function ExpenseEntry() {
   });
 
   const { data: expenses = [], isLoading } = useQuery<Expense[]>({
-    queryKey: ["/api/expenses", filters],
+    queryKey: ["/api/expenses/filtered", filters],
     queryFn: ({ queryKey }) => {
       const [, filterParams] = queryKey;
       const searchParams = new URLSearchParams();
@@ -26,7 +26,7 @@ export default function ExpenseEntry() {
         }
       });
 
-      return fetch(`/api/expenses?${searchParams.toString()}`, {
+      return fetch(`/api/expenses/filtered?${searchParams.toString()}`, {
         credentials: "include",
       }).then(res => {
         if (!res.ok) throw new Error('Failed to fetch expenses');
